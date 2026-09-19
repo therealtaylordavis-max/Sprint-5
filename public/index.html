@@ -1,0 +1,966 @@
+<title>Helix Pulse</title>
+<style>
+  :root{
+    color-scheme: light;
+    --page:#f9f9f7; --surface-1:#fcfcfb; --surface-2:#ffffff;
+    --text-primary:#0b0b0b; --text-secondary:#52514e; --text-muted:#898781;
+    --grid:#e1e0d9; --axis:#c3c2b7; --border:rgba(11,11,11,0.10);
+    --ring-250:#86b6ef; --ring-300:#6da7ec; --ring-350:#5598e7; --ring-400:#3987e5;
+    --ring-450:#2a78d6; --ring-500:#256abf; --ring-550:#1c5cab; --ring-600:#184f95;
+    --series-1:#2a78d6; --series-2:#eb6834; --series-3:#1baf7a; --series-4:#eda100;
+    --good:#0ca30c; --warning:#fab219; --serious:#ec835a; --critical:#d03b3b;
+    --neutral-fill:#a9a79f;
+    --shadow: 0 1px 2px rgba(11,11,11,0.06), 0 8px 24px -12px rgba(11,11,11,0.14);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      color-scheme: dark;
+      --page:#0d0d0d; --surface-1:#1a1a19; --surface-2:#202020;
+      --text-primary:#ffffff; --text-secondary:#c3c2b7; --text-muted:#95938c;
+      --grid:#2c2c2a; --axis:#383835; --border:rgba(255,255,255,0.10);
+      --series-1:#3987e5; --series-2:#d95926; --series-3:#199e70; --series-4:#c98500;
+      --neutral-fill:#5a584f;
+      --shadow: 0 1px 2px rgba(0,0,0,0.4), 0 8px 24px -12px rgba(0,0,0,0.6);
+    }
+  }
+  :root[data-theme="dark"]{
+    color-scheme: dark;
+    --page:#0d0d0d; --surface-1:#1a1a19; --surface-2:#202020;
+    --text-primary:#ffffff; --text-secondary:#c3c2b7; --text-muted:#95938c;
+    --grid:#2c2c2a; --axis:#383835; --border:rgba(255,255,255,0.10);
+    --series-1:#3987e5; --series-2:#d95926; --series-3:#199e70; --series-4:#c98500;
+    --neutral-fill:#5a584f;
+    --shadow: 0 1px 2px rgba(0,0,0,0.4), 0 8px 24px -12px rgba(0,0,0,0.6);
+  }
+
+  @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&display=swap');
+
+  *{box-sizing:border-box;}
+  body{
+    background:var(--page); color:var(--text-primary);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    padding-inline: 16px; padding-block: 28px;
+    max-width: 1180px; margin: 0 auto;
+  }
+  h1,h2,h3{ font-family:'Manrope', system-ui, sans-serif; text-wrap:balance; margin:0; }
+  p{ margin:0; }
+  ::selection{ background: var(--series-1); color:#fff; }
+
+  /* ---------- header ---------- */
+  .app-header{
+    display:flex; align-items:flex-start; justify-content:space-between; gap:16px;
+    flex-wrap:wrap; margin-bottom:28px; padding-bottom:20px; border-bottom:1px solid var(--border);
+  }
+  .brand{ display:flex; align-items:center; gap:12px; }
+  .brand-mark{
+    width:40px; height:40px; border-radius:10px; flex:none;
+    background:linear-gradient(135deg, var(--series-1), var(--ring-600, #184f95));
+    display:flex; align-items:center; justify-content:center;
+    color:#fff; font-family:'Manrope',sans-serif; font-weight:800; font-size:18px;
+  }
+  .brand h1{ font-size:22px; font-weight:800; letter-spacing:-0.01em; }
+  .brand p{ font-size:13px; color:var(--text-secondary); margin-top:2px; }
+  .header-meta{ text-align:right; font-size:12px; color:var(--text-muted); }
+  .header-meta strong{ color:var(--text-secondary); font-weight:600; }
+
+  section{ margin-bottom:36px; }
+  .section-head{ margin-bottom:14px; }
+  .section-head h2{ font-size:17px; font-weight:700; }
+  .section-head p{ font-size:13px; color:var(--text-secondary); margin-top:3px; max-width:62ch; }
+  .eyebrow{
+    font-size:11px; font-weight:700; letter-spacing:0.07em; text-transform:uppercase;
+    color:var(--series-1); margin-bottom:6px; display:block;
+  }
+
+  /* ---------- KPI row ---------- */
+  .kpi-row{ display:grid; grid-template-columns:repeat(auto-fit, minmax(160px,1fr)); gap:12px; }
+  .kpi-tile{
+    background:var(--surface-1); border:1px solid var(--border); border-radius:12px;
+    padding:16px; box-shadow:var(--shadow);
+  }
+  .kpi-label{ font-size:12px; color:var(--text-secondary); font-weight:600; }
+  .kpi-value{ font-size:28px; font-weight:800; font-family:'Manrope',sans-serif; margin-top:6px; line-height:1.1; }
+  .kpi-sub{ font-size:12px; color:var(--text-muted); margin-top:5px; }
+  .kpi-tile.warn .kpi-value{ color:var(--warning); }
+  .kpi-tile.critical .kpi-value{ color:var(--critical); }
+  .kpi-tile.good .kpi-value{ color:var(--good); }
+
+  /* ---------- insight banner ---------- */
+  .insight{
+    display:flex; gap:14px; align-items:flex-start;
+    background: color-mix(in srgb, var(--series-1) 8%, var(--surface-1));
+    border:1px solid color-mix(in srgb, var(--series-1) 25%, var(--border));
+    border-radius:12px; padding:16px 18px;
+  }
+  .insight-icon{
+    flex:none; width:32px; height:32px; border-radius:8px; background:var(--series-1);
+    color:#fff; display:flex; align-items:center; justify-content:center; font-weight:800; font-family:'Manrope',sans-serif;
+  }
+  .insight h3{ font-size:14px; font-weight:700; margin-bottom:4px; }
+  .insight p{ font-size:13.5px; color:var(--text-secondary); line-height:1.5; }
+  .insight strong{ color:var(--text-primary); font-variant-numeric: tabular-nums; }
+
+  /* ---------- chart cards ---------- */
+  .chart-grid{ display:grid; grid-template-columns:repeat(auto-fit, minmax(250px,1fr)); gap:14px; }
+  .chart-grid.wide{ grid-template-columns:repeat(auto-fit, minmax(380px,1fr)); }
+  .card{
+    background:var(--surface-1); border:1px solid var(--border); border-radius:12px;
+    padding:18px; box-shadow:var(--shadow); min-width:0;
+  }
+  .card h3{ font-size:14px; font-weight:700; }
+  .card .card-sub{ font-size:12px; color:var(--text-muted); margin-top:2px; margin-bottom:14px; }
+
+  /* donut */
+  .donut-wrap{ display:flex; flex-direction:column; align-items:center; gap:14px; }
+  .donut-svg{ width:100%; max-width:220px; height:auto; overflow:visible; }
+  .donut-slice{ cursor:pointer; transition:opacity .15s ease; outline:none; }
+  .donut-slice:hover, .donut-slice:focus-visible{ opacity:0.82; }
+  .donut-center-value{ font-family:'Manrope',sans-serif; font-weight:800; }
+  .donut-center-label{ fill:var(--text-muted); }
+  .donut-outlabel{ fill:var(--text-secondary); font-size:11px; font-weight:600; }
+  .legend{ list-style:none; margin:0; padding:0; width:100%; display:flex; flex-direction:column; gap:7px; }
+  .legend li{ display:flex; align-items:center; gap:8px; font-size:12.5px; }
+  .legend .swatch{ width:10px; height:10px; border-radius:3px; flex:none; }
+  .legend .lg-label{ color:var(--text-secondary); flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .legend .lg-value{ color:var(--text-primary); font-weight:700; font-variant-numeric:tabular-nums; }
+  .legend .lg-pct{ color:var(--text-muted); font-variant-numeric:tabular-nums; min-width:34px; text-align:right; }
+
+  /* hbar */
+  .hbar-list{ display:flex; flex-direction:column; gap:9px; }
+  .hbar-row{ display:grid; grid-template-columns:minmax(90px,150px) 1fr auto; align-items:center; gap:10px; }
+  .hbar-name{ font-size:12.5px; color:var(--text-secondary); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .hbar-track{ position:relative; height:16px; background:var(--grid); border-radius:4px; overflow:hidden; }
+  .hbar-fill{
+    position:absolute; inset-block:0; left:0; height:100%; border-radius:4px 2px 2px 4px;
+    min-width:3px; transition:filter .15s ease;
+  }
+  .hbar-row:hover .hbar-fill, .hbar-row:focus-within .hbar-fill{ filter:brightness(0.9); }
+  .hbar-value{ font-size:12.5px; font-weight:700; color:var(--text-primary); font-variant-numeric:tabular-nums; min-width:58px; text-align:right; }
+  .hbar-track:focus-visible{ outline:2px solid var(--series-1); outline-offset:2px; }
+
+  /* diverging nps bar */
+  .nps-bar{ display:flex; width:100%; height:28px; border-radius:6px; overflow:hidden; background:var(--grid); }
+  .nps-seg{ height:100%; }
+  .nps-legend{ display:flex; flex-wrap:wrap; gap:16px; margin-top:14px; }
+  .nps-legend-item{ display:flex; align-items:center; gap:7px; font-size:12.5px; }
+  .nps-legend-item .swatch{ width:10px; height:10px; border-radius:3px; }
+  .nps-legend-item b{ font-variant-numeric:tabular-nums; }
+  .nps-net{ margin-top:12px; padding-top:12px; border-top:1px solid var(--border); font-size:12.5px; color:var(--text-secondary); }
+  .nps-net strong{ color:var(--text-primary); font-variant-numeric:tabular-nums; }
+
+  details.table-toggle{ margin-top:14px; }
+  details.table-toggle summary{
+    font-size:12px; font-weight:600; color:var(--series-1); cursor:pointer; list-style:none;
+    display:inline-flex; align-items:center; gap:4px; user-select:none;
+  }
+  details.table-toggle summary::-webkit-details-marker{ display:none; }
+  details.table-toggle summary::before{ content:"▸"; font-size:10px; transition:transform .15s ease; }
+  details.table-toggle[open] summary::before{ transform:rotate(90deg); }
+  details.table-toggle table{ margin-top:10px; }
+
+  /* generic data table */
+  table{ width:100%; border-collapse:collapse; font-size:12.5px; }
+  table th{ text-align:left; color:var(--text-muted); font-weight:600; font-size:11px; text-transform:uppercase; letter-spacing:0.03em; padding:6px 8px; border-bottom:1px solid var(--border); }
+  table td{ padding:7px 8px; border-bottom:1px solid var(--border); color:var(--text-secondary); }
+  table td.num, table th.num{ text-align:right; font-variant-numeric:tabular-nums; }
+  table tr:last-child td{ border-bottom:none; }
+
+  /* status-by-health table */
+  .health-table td.status-cell{ position:relative; padding-left:16px; font-weight:600; color:var(--text-primary); }
+  .health-table td.status-cell::before{
+    content:""; position:absolute; left:2px; top:50%; transform:translateY(-50%);
+    width:4px; height:60%; border-radius:2px; background:var(--stripe, var(--text-muted));
+  }
+
+  /* status chip */
+  .chip{
+    display:inline-flex; align-items:center; gap:5px; padding:3px 9px; border-radius:999px;
+    font-size:11.5px; font-weight:700;
+  }
+  .chip::before{ content:""; width:6px; height:6px; border-radius:50%; background:currentColor; }
+  .chip.active{ background:color-mix(in srgb, var(--good) 15%, transparent); color:var(--good); }
+  .chip.at-risk{ background:color-mix(in srgb, var(--warning) 20%, transparent); color:#9a6a00; }
+  :root[data-theme="dark"] .chip.at-risk, @media (prefers-color-scheme:dark){ .chip.at-risk{ color:var(--warning); } }
+  .chip.churned{ background:color-mix(in srgb, var(--critical) 15%, transparent); color:var(--critical); }
+
+  /* tooltip */
+  #viz-tooltip{
+    position:fixed; pointer-events:none; z-index:50; background:var(--text-primary); color:var(--page);
+    font-size:12px; padding:7px 10px; border-radius:7px; box-shadow:var(--shadow);
+    max-width:220px; opacity:0; transform:translateY(4px); transition:opacity .1s ease;
+  }
+  #viz-tooltip.show{ opacity:1; }
+  #viz-tooltip .tt-value{ font-weight:800; font-variant-numeric:tabular-nums; display:block; font-size:13px; }
+  #viz-tooltip .tt-label{ opacity:0.75; }
+
+  /* roster controls */
+  .roster-controls{ display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-bottom:14px; }
+  .roster-search{
+    flex:1 1 220px; padding:9px 12px; border-radius:8px; border:1px solid var(--border);
+    background:var(--surface-2); color:var(--text-primary); font-size:13px;
+  }
+  .roster-search:focus-visible{ outline:2px solid var(--series-1); outline-offset:1px; }
+  .filter-pills{ display:flex; gap:6px; flex-wrap:wrap; }
+  .filter-pill{
+    padding:7px 13px; border-radius:999px; border:1px solid var(--border); background:var(--surface-2);
+    color:var(--text-secondary); font-size:12.5px; font-weight:600; cursor:pointer;
+  }
+  .filter-pill[aria-pressed="true"]{ background:var(--series-1); border-color:var(--series-1); color:#fff; }
+  .roster-count{ font-size:12px; color:var(--text-muted); margin-bottom:8px; }
+  .roster-table-wrap{ overflow-x:auto; border:1px solid var(--border); border-radius:10px; }
+  .roster-table-wrap table{ min-width:820px; }
+  th.sortable{ cursor:pointer; user-select:none; white-space:nowrap; }
+  th.sortable:hover{ color:var(--text-secondary); }
+  th.sortable .arrow{ margin-left:3px; opacity:0.5; }
+  th.sortable.active .arrow{ opacity:1; color:var(--series-1); }
+
+  footer{ margin-top:40px; padding-top:18px; border-top:1px solid var(--border); font-size:12px; color:var(--text-muted); display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px; }
+
+  @media (max-width: 480px){
+    .kpi-value{ font-size:24px; }
+    .hbar-row{ grid-template-columns:minmax(70px,110px) 1fr auto; }
+    .app-header{ flex-direction:column; }
+    .header-meta{ text-align:left; }
+  }
+</style>
+
+<div id="viz-tooltip" role="status" aria-live="polite"></div>
+
+<header class="app-header">
+  <div class="brand">
+    <div class="brand-mark">H</div>
+    <div>
+      <h1>Helix Pulse</h1>
+      <p>Customer success analytics — 110 active contracts across the book</p>
+    </div>
+  </div>
+  <div class="header-meta">
+    Data export snapshot<br><strong id="snapshot-date"></strong>
+  </div>
+</header>
+
+<section id="kpi-section">
+  <div class="kpi-row" id="kpi-row"></div>
+</section>
+
+<section id="insight-section">
+  <div class="insight">
+    <div class="insight-icon">!</div>
+    <div>
+      <h3>CSM coverage is the single strongest retention lever in this book</h3>
+      <p>Accounts with a named Customer Success Manager churn at <strong>17.3%</strong> — accounts left unmanaged churn at <strong>48.3%</strong>, nearly 3× higher. Only <strong>47%</strong> of the 110 accounts currently carry CSM coverage, leaving <strong id="uncovered-mrr-note">the rest</strong> of monthly recurring revenue without a dedicated owner.</p>
+    </div>
+  </div>
+</section>
+
+<section id="composition-section">
+  <div class="section-head">
+    <span class="eyebrow">Portfolio composition</span>
+    <h2>How the book breaks down</h2>
+    <p>Four views of the same 110 accounts — health status, plan tier, contract commitment, and company size.</p>
+  </div>
+  <div class="chart-grid" id="donut-grid"></div>
+</section>
+
+<section id="revenue-section">
+  <div class="section-head">
+    <span class="eyebrow">Revenue</span>
+    <h2>Where the $195.3K in MRR comes from</h2>
+    <p>Revenue concentration by industry and by CSM-owned book of business.</p>
+  </div>
+  <div class="chart-grid wide" id="revenue-grid"></div>
+</section>
+
+<section id="health-section">
+  <div class="section-head">
+    <span class="eyebrow">Health &amp; retention</span>
+    <h2>Sentiment and churn drivers</h2>
+    <p>Net sentiment across the book, why accounts leave, and how health metrics diverge by status.</p>
+  </div>
+  <div class="chart-grid wide" id="health-grid"></div>
+  <div class="card" style="margin-top:14px;">
+    <h3>Health metrics by account status</h3>
+    <p class="card-sub">Averages across each status segment — the gap between Active and Churned is the early-warning signal.</p>
+    <div style="overflow-x:auto;">
+      <table class="health-table" id="health-table"></table>
+    </div>
+  </div>
+</section>
+
+<section id="engagement-section">
+  <div class="section-head">
+    <span class="eyebrow">Engagement</span>
+    <h2>Login recency &amp; upcoming renewals</h2>
+    <p>How recently accounts have logged in, and when the book comes up for renewal.</p>
+  </div>
+  <div class="chart-grid wide" id="engagement-grid"></div>
+</section>
+
+<section id="roster-section">
+  <div class="section-head">
+    <span class="eyebrow">Account roster</span>
+    <h2>All 110 accounts</h2>
+    <p>Search, filter, and sort the full export.</p>
+  </div>
+  <div class="roster-controls">
+    <input type="text" class="roster-search" id="roster-search" placeholder="Search company or industry…" aria-label="Search accounts">
+    <div class="filter-pills" id="roster-filters" role="group" aria-label="Filter by status"></div>
+  </div>
+  <p class="roster-count" id="roster-count"></p>
+  <div class="roster-table-wrap">
+    <table id="roster-table"></table>
+  </div>
+</section>
+
+<footer>
+  <span>Helix Pulse · internal analytics tool · not for external distribution</span>
+  <span id="footer-count"></span>
+</footer>
+
+<script>
+(function(){
+  "use strict";
+
+  var CSV = "customer_id,company_name,industry,company_size,employees,plan,contract_type,mrr,start_date,churn_date,status,csm_assigned,csm_name,product_usage_score,support_tickets_90d,last_login_days_ago,nps_score,churn_reason,months_as_customer,renewal_quarter\\n" +
+"HX-2001,Briartree Brewing,Manufacturing,Mid-Market,419,Growth,Monthly,427,2024-01-28,,Active,Yes,Jordan Reyes,92,7,4,69,,14,Q1-2025\\n" +
+"HX-2002,Foundry Robotics,Logistics,Enterprise,2706,Business,Annual,1960,2023-12-13,,At-Risk,No,,43,7,30,5,,15,Q4-2024\\n" +
+"HX-2003,Glide Logistics,Professional Services,SMB,48,Starter,Annual,139,2024-09-12,,At-Risk,Yes,Chris Nguyen,51,2,38,13,,6,Q3-2025\\n" +
+"HX-2004,Harvest Mutual Bank,Nonprofit,SMB,35,Starter,Monthly,109,2024-03-11,2024-09-25,Churned,Yes,Maya Torres,19,17,96,-40,Competitor,6,Q1-2025\\n" +
+"HX-2005,Lumen Architecture,Nonprofit,SMB,36,Starter,Monthly,103,2023-05-15,,Active,Yes,Maya Torres,93,2,10,77,,22,Q2-2024\\n" +
+"HX-2006,Northwind Outdoor Co,Healthcare,SMB,14,Starter,Annual,232,2023-11-23,,Active,Yes,Sam Patel,62,5,3,37,,16,Q4-2024\\n" +
+"HX-2007,Polaris Med Devices,Technology,Mid-Market,444,Growth,Monthly,720,2024-02-13,,Active,Yes,Avery Kim,71,0,6,41,,13,Q1-2025\\n" +
+"HX-2008,Quill Public Schools,Retail,SMB,14,Starter,Monthly,273,2023-11-18,2024-07-29,Churned,No,,25,7,62,-12,Missing Feature,8,Q4-2024\\n" +
+"HX-2009,Riverstone Realty,Nonprofit,Enterprise,2119,Business,Annual,1637,2024-11-05,,Active,Yes,Avery Kim,58,7,4,73,,4,Q4-2025\\n" +
+"HX-2010,Sable Energy Co-op,Logistics,SMB,35,Starter,Monthly,259,2023-06-25,2024-09-15,Churned,No,,26,12,114,7,Lack of Use,14,Q2-2024\\n" +
+"HX-2011,Tinder Press,Professional Services,Mid-Market,321,Growth,Multi-Year,384,2024-06-07,,Active,No,,76,6,8,46,,9,Q2-2025\\n" +
+"HX-2012,Umbra Game Studios,Retail,Enterprise,3733,Enterprise,Monthly,2976,2024-03-02,,Active,No,,45,4,4,45,,13,Q1-2025\\n" +
+"HX-2013,Verdant Foods Group,Manufacturing,Enterprise,2741,Enterprise,Annual,9886,2024-04-02,,Active,Yes,Sam Patel,92,2,6,56,,12,Q2-2025\\n" +
+"HX-2014,Westline Insurance,Hospitality,Mid-Market,457,Business,Annual,2080,2024-05-02,,Active,No,,52,0,2,29,,11,Q2-2025\\n" +
+"HX-2015,Yarrow Apparel,Healthcare,SMB,31,Starter,Multi-Year,194,2023-09-25,,Active,Yes,Avery Kim,85,0,1,55,,18,Q3-2024\\n" +
+"HX-2016,Zenith Aerospace,Professional Services,Enterprise,2123,Enterprise,Monthly,5920,2023-08-24,,Active,No,,55,4,11,47,,19,Q3-2024\\n" +
+"HX-2017,Beacon Childcare Network,Professional Services,SMB,32,Starter,Multi-Year,274,2023-05-09,,Active,No,,57,6,3,32,,23,Q2-2024\\n" +
+"HX-2018,Cobalt Cloud Services,Media,Mid-Market,242,Growth,Monthly,713,2024-10-02,2025-01-03,Churned,No,,29,9,31,-33,Business Closure,3,Q4-2025\\n" +
+"HX-2019,Drift Hospitality Group,Retail,Mid-Market,464,Growth,Monthly,490,2023-09-17,2024-01-06,Churned,No,,12,14,31,-39,Competitor,3,Q3-2024\\n" +
+"HX-2020,Echo Sound Labs,Education,SMB,24,Starter,Monthly,263,2023-11-21,2024-06-30,Churned,Yes,Chris Nguyen,90,6,108,13,Lack of Use,7,Q4-2024\\n" +
+"HX-2021,Field & Meadow Coop,Utilities,Mid-Market,98,Business,Annual,1155,2024-06-20,,Active,Yes,Sam Patel,51,4,3,41,,9,Q2-2025\\n" +
+"HX-2022,Granite Pacific Bank,Technology,Mid-Market,307,Growth,Monthly,391,2024-10-06,2024-11-24,Churned,No,,26,18,112,8,Price,1,Q4-2025\\n" +
+"HX-2023,Hollow Pines Resorts,Hospitality,SMB,16,Starter,Annual,112,2024-01-14,,Active,Yes,Chris Nguyen,62,3,12,61,,14,Q1-2025\\n" +
+"HX-2024,Ivory Lane Cosmetics,Finance,SMB,36,Starter,Multi-Year,261,2024-05-31,,Active,Yes,Chris Nguyen,82,3,11,45,,10,Q2-2025\\n" +
+"HX-2025,Jasper Civil Engineers,Professional Services,SMB,28,Starter,Annual,113,2024-10-04,,At-Risk,Yes,Sam Patel,12,11,13,20,,5,Q4-2025\\n" +
+"HX-2026,Kettlebell Health,Nonprofit,SMB,11,Starter,Multi-Year,177,2024-02-03,,Active,Yes,Sam Patel,67,7,1,42,,14,Q1-2025\\n" +
+"HX-2027,Longbow Analytics,Finance,Mid-Market,181,Business,Annual,1567,2023-09-08,2024-01-24,Churned,No,,97,10,73,-39,Competitor,4,Q3-2024\\n" +
+"HX-2028,Marble Stone Group,Nonprofit,SMB,32,Starter,Monthly,275,2024-01-14,2025-01-08,Churned,No,,45,22,71,9,Lack of Use,12,Q1-2025\\n" +
+"HX-2029,Nightfall Security,Education,Mid-Market,317,Growth,Monthly,351,2023-10-05,,Active,Yes,Chris Nguyen,87,7,11,43,,18,Q4-2024\\n" +
+"HX-2030,Orbit Data Labs,Media,Enterprise,4879,Enterprise,Monthly,4811,2024-05-21,,Active,No,,93,5,9,80,,10,Q2-2025\\n" +
+"HX-2031,Persimmon Brands,Healthcare,Enterprise,1562,Business,Monthly,1371,2024-04-09,,Active,No,,69,0,1,35,,11,Q2-2025\\n" +
+"HX-2032,Quarry Ridge Partners,Manufacturing,SMB,28,Starter,Monthly,144,2023-07-28,2024-03-01,Churned,No,,16,14,118,-13,Competitor,7,Q3-2024\\n" +
+"HX-2033,Redline Automotive,Healthcare,SMB,12,Starter,Annual,108,2023-10-03,2024-11-21,Churned,No,,67,10,45,6,Lack of Use,13,Q4-2024\\n" +
+"HX-2034,Solstice Wellness,Education,Mid-Market,218,Growth,Annual,455,2024-04-03,,Active,Yes,Chris Nguyen,64,4,3,59,,12,Q2-2025\\n" +
+"HX-2035,Tidemark Capital,Finance,Enterprise,3987,Enterprise,Annual,7051,2024-03-21,2025-02-11,Churned,Yes,Sam Patel,84,17,31,6,Price,10,Q1-2025\\n" +
+"HX-2036,Union Pacific Freight,Hospitality,SMB,17,Starter,Monthly,165,2023-07-16,2024-02-25,Churned,No,,26,22,108,-29,Price,7,Q3-2024\\n" +
+"HX-2037,Valiant Properties,Retail,SMB,24,Starter,Annual,153,2024-05-06,2024-11-18,Churned,No,,32,6,116,-32,Business Closure,6,Q2-2025\\n" +
+"HX-2038,Watershed Environmental,Nonprofit,Mid-Market,84,Business,Monthly,1940,2023-06-30,2024-01-02,Churned,No,,82,16,85,-39,Competitor,6,Q2-2024\\n" +
+"HX-2039,Xenon Photonics,Logistics,Enterprise,1938,Enterprise,Monthly,8176,2024-12-06,2025-01-18,Churned,No,,45,15,111,2,Competitor,1,Q4-2025\\n" +
+"HX-2040,Yardbird Restaurants,Nonprofit,SMB,14,Starter,Annual,240,2024-10-18,,Active,Yes,Avery Kim,72,5,3,43,,5,Q4-2025\\n" +
+"HX-2041,Zephyr Wind Energy,Technology,Mid-Market,330,Business,Annual,1364,2024-02-22,,Active,Yes,Avery Kim,56,4,12,38,,13,Q1-2025\\n" +
+"HX-2042,Ashwood Medical,Professional Services,SMB,40,Starter,Annual,156,2023-11-07,2023-12-22,Churned,No,,34,16,59,21,Missing Feature,1,Q4-2024\\n" +
+"HX-2043,Blue Crane Ventures,Hospitality,Enterprise,2270,Business,Monthly,1526,2024-07-28,,Active,Yes,Jordan Reyes,89,0,2,52,,8,Q3-2025\\n" +
+"HX-2044,Copper Canyon Mining,Utilities,Enterprise,1528,Enterprise,Monthly,8741,2024-04-14,2024-09-03,Churned,No,,93,6,111,6,Competitor,4,Q2-2025\\n" +
+"HX-2045,Dawnbreak Studios,Professional Services,Mid-Market,228,Growth,Annual,650,2023-09-13,,Active,Yes,Jordan Reyes,71,2,5,61,,18,Q3-2024\\n" +
+"HX-2046,Ember Creek Brewery,Utilities,Enterprise,3878,Enterprise,Annual,7957,2024-02-29,,Active,No,,64,7,2,46,,13,Q1-2025\\n" +
+"HX-2047,Fernwood Education,Utilities,Enterprise,3136,Enterprise,Monthly,8809,2023-02-01,2023-08-13,Churned,No,,62,5,58,3,Business Closure,6,Q1-2024\\n" +
+"HX-2048,Glacier Point Finance,Manufacturing,Mid-Market,217,Growth,Annual,302,2023-06-09,,Active,No,,77,5,12,60,,22,Q2-2024\\n" +
+"HX-2049,Harbor Light Consulting,Utilities,Mid-Market,410,Business,Annual,2423,2024-12-05,,Active,Yes,Jordan Reyes,69,5,6,64,,3,Q4-2025\\n" +
+"HX-2050,Ironbark Manufacturing,Healthcare,SMB,40,Starter,Monthly,271,2024-02-22,2024-04-20,Churned,No,,24,6,110,-29,Price,1,Q1-2025\\n" +
+"HX-2051,Juniper Lane Retail,Utilities,Enterprise,1881,Enterprise,Annual,7843,2024-07-23,,Active,Yes,Sam Patel,75,6,6,71,,8,Q3-2025\\n" +
+"HX-2052,Keystone Healthcare,Media,Enterprise,4300,Enterprise,Multi-Year,6459,2024-03-30,,Active,No,,77,4,9,61,,12,Q1-2025\\n" +
+"HX-2053,Limestone Tech,Healthcare,Mid-Market,330,Business,Monthly,1579,2024-03-22,,Active,Yes,Jordan Reyes,68,3,3,76,,12,Q1-2025\\n" +
+"HX-2054,Mosaic Digital Agency,Professional Services,Enterprise,2144,Business,Monthly,1185,2023-05-18,,Active,No,,97,5,12,31,,22,Q2-2024\\n" +
+"HX-2055,Nightjar Music,Technology,SMB,38,Starter,Annual,136,2024-04-17,2024-09-18,Churned,No,,32,15,32,-18,Lack of Use,5,Q2-2025\\n" +
+"HX-2056,Oaktree Legal Services,Media,Enterprise,4549,Enterprise,Annual,9362,2024-01-13,,Active,No,,93,4,11,51,,14,Q1-2025\\n" +
+"HX-2057,Pendulum Analytics,Technology,Mid-Market,233,Business,Annual,1668,2024-12-29,,Active,Yes,Jordan Reyes,71,0,3,75,,3,Q4-2025\\n" +
+"HX-2058,Quicksilver Trading,Media,SMB,40,Starter,Multi-Year,156,2024-02-04,,Active,No,,62,1,2,64,,14,Q1-2025\\n" +
+"HX-2059,Ridgeline Construction,Nonprofit,SMB,30,Starter,Annual,151,2023-02-25,2023-09-14,Churned,No,,83,17,73,-5,Price,6,Q1-2024\\n" +
+"HX-2060,Springwell Biotech,Education,Mid-Market,80,Growth,Multi-Year,747,2024-11-17,,At-Risk,No,,13,16,40,19,,4,Q4-2025\\n" +
+"HX-2061,Tideland Marine,Education,Mid-Market,401,Business,Annual,926,2023-09-12,,Active,No,,55,2,1,35,,18,Q3-2024\\n" +
+"HX-2062,Uplift Nonprofits,Logistics,Mid-Market,278,Business,Annual,2389,2023-08-27,,Active,No,,75,4,7,59,,19,Q3-2024\\n" +
+"HX-2063,Vesper Communications,Education,Mid-Market,94,Growth,Annual,404,2023-04-13,2024-02-15,Churned,No,,93,11,31,-38,Missing Feature,10,Q2-2024\\n" +
+"HX-2064,Willowbrook Staffing,Technology,SMB,21,Starter,Monthly,293,2024-01-16,,Active,Yes,Avery Kim,59,0,7,68,,14,Q1-2025\\n" +
+"HX-2065,Crossroads Media,Professional Services,Mid-Market,363,Growth,Monthly,636,2023-11-11,2024-08-30,Churned,No,,88,6,70,-28,Business Closure,9,Q4-2024\\n" +
+"HX-2066,Drumlin Agricultural,Healthcare,SMB,15,Starter,Monthly,294,2023-05-03,2023-08-20,Churned,Yes,Maya Torres,59,18,63,-30,Business Closure,3,Q2-2024\\n" +
+"HX-2067,Eastgate Financial,Retail,Enterprise,4417,Enterprise,Multi-Year,7573,2023-10-05,,Active,No,,64,7,9,38,,18,Q4-2024\\n" +
+"HX-2068,Falcon Robotics,Retail,Enterprise,2884,Business,Monthly,2114,2023-03-13,,At-Risk,No,,25,9,43,33,,25,Q1-2024\\n" +
+"HX-2069,Greenhill Pharma,Technology,SMB,20,Starter,Annual,139,2024-06-05,2024-10-02,Churned,Yes,Chris Nguyen,71,20,89,-31,Business Closure,3,Q2-2025\\n" +
+"HX-2070,Hearthstone Hotels,Nonprofit,SMB,21,Starter,Monthly,240,2023-04-15,2024-02-23,Churned,No,,40,20,88,-32,Lack of Use,10,Q2-2024\\n" +
+"HX-2071,Inkwell Publishing,Technology,Mid-Market,360,Business,Annual,2341,2023-05-11,,Active,Yes,Maya Torres,65,6,9,38,,23,Q2-2024\\n" +
+"HX-2072,Juneau Exploration,Professional Services,Mid-Market,92,Growth,Annual,609,2024-03-20,,Active,Yes,Jordan Reyes,80,7,1,55,,12,Q1-2025\\n" +
+"HX-2073,Kingfisher Aviation,Media,Enterprise,863,Business,Annual,2116,2023-05-03,,Active,Yes,Jordan Reyes,95,3,4,48,,23,Q2-2024\\n" +
+"HX-2074,Larkspur Design,Education,SMB,46,Starter,Multi-Year,239,2023-03-30,,Active,Yes,Sam Patel,59,2,4,74,,24,Q1-2024\\n" +
+"HX-2075,Midland Utilities,Healthcare,SMB,37,Starter,Annual,108,2023-03-12,,Active,Yes,Chris Nguyen,80,5,10,42,,25,Q1-2024\\n" +
+"HX-2076,Nomad Ventures,Utilities,SMB,44,Starter,Monthly,153,2024-01-18,2024-06-05,Churned,Yes,Maya Torres,70,6,96,-8,Missing Feature,4,Q1-2025\\n" +
+"HX-2077,Overture Events,Nonprofit,Enterprise,2337,Business,Monthly,1781,2023-01-19,,Active,Yes,Maya Torres,52,6,3,41,,26,Q1-2024\\n" +
+"HX-2078,Pathfinder Education,Logistics,Mid-Market,324,Business,Annual,2095,2024-05-05,,At-Risk,No,,22,9,10,25,,11,Q2-2025\\n" +
+"HX-2079,Quorum Consulting,Retail,SMB,42,Starter,Annual,248,2024-02-05,,Active,Yes,Avery Kim,91,1,10,31,,14,Q1-2025\\n" +
+"HX-2080,Ridgecrest Energy,Utilities,SMB,27,Starter,Monthly,277,2023-02-16,2024-02-17,Churned,No,,20,17,54,18,Price,12,Q1-2024\\n" +
+"HX-2081,Sandpiper Logistics,Media,Mid-Market,106,Business,Monthly,977,2024-05-25,2024-09-16,Churned,No,,61,20,90,9,Price,3,Q2-2025\\n" +
+"HX-2082,Thornwood Capital,Utilities,Mid-Market,227,Growth,Annual,716,2023-08-20,,Active,Yes,Sam Patel,94,0,5,39,,19,Q3-2024\\n" +
+"HX-2083,Uinta Mining,Retail,Mid-Market,54,Business,Annual,2179,2024-01-14,,Active,Yes,Jordan Reyes,56,2,7,30,,14,Q1-2025\\n" +
+"HX-2084,Vanguard Retail,Professional Services,Mid-Market,230,Business,Monthly,936,2023-12-20,,Active,No,,58,1,1,39,,15,Q4-2024\\n" +
+"HX-2085,Whitehorse Technologies,Technology,SMB,42,Starter,Monthly,151,2024-11-03,2025-01-05,Churned,No,,16,18,68,-1,Price,2,Q4-2025\\n" +
+"HX-2086,Xerxes Maritime,Retail,SMB,17,Starter,Multi-Year,155,2024-03-16,,At-Risk,Yes,Chris Nguyen,41,4,41,22,,12,Q1-2025\\n" +
+"HX-2087,Yellowstone Ranching,Finance,Mid-Market,222,Growth,Annual,410,2024-08-26,,Active,Yes,Chris Nguyen,72,3,8,41,,7,Q3-2025\\n" +
+"HX-2088,Zion Healthcare,Hospitality,Enterprise,2098,Business,Annual,1413,2023-11-08,,Active,Yes,Sam Patel,56,5,10,34,,17,Q4-2024\\n" +
+"HX-2089,Acorn Financial,Finance,SMB,36,Starter,Monthly,274,2023-01-04,2023-08-19,Churned,Yes,Jordan Reyes,37,16,58,5,Business Closure,7,Q1-2024\\n" +
+"HX-2090,Birchwood Media,Nonprofit,SMB,24,Starter,Monthly,108,2024-09-15,,Active,Yes,Jordan Reyes,51,6,3,42,,6,Q3-2025\\n" +
+"HX-2091,Clearwater Solutions,Media,Enterprise,4760,Enterprise,Annual,5839,2023-05-09,,Active,No,,60,7,5,54,,23,Q2-2024\\n" +
+"HX-2092,Driftwood Hospitality,Retail,Enterprise,2631,Enterprise,Monthly,7080,2024-03-04,,Active,No,,64,4,5,48,,13,Q1-2025\\n" +
+"HX-2093,Eagle Ridge Properties,Finance,SMB,35,Starter,Annual,261,2024-08-21,,At-Risk,No,,38,17,21,7,,7,Q3-2025\\n" +
+"HX-2094,Frostline Analytics,Media,Mid-Market,173,Growth,Annual,649,2024-09-13,,Active,Yes,Chris Nguyen,54,3,10,31,,6,Q3-2025\\n" +
+"HX-2095,Gander Bay Fisheries,Utilities,Enterprise,2019,Business,Monthly,1216,2024-07-21,2024-12-27,Churned,Yes,Sam Patel,88,22,74,-5,Competitor,5,Q3-2025\\n" +
+"HX-2096,Haven Healthcare,Technology,Mid-Market,94,Business,Monthly,2101,2023-10-28,,Active,Yes,Avery Kim,88,6,5,48,,17,Q4-2024\\n" +
+"HX-2097,Indigo Blue Design,Nonprofit,SMB,34,Starter,Annual,179,2023-05-23,2023-12-28,Churned,No,,37,17,90,-36,Missing Feature,7,Q2-2024\\n" +
+"HX-2098,Juneau Pacific Ventures,Media,Enterprise,1460,Business,Annual,1045,2024-08-20,,Active,Yes,Jordan Reyes,57,2,8,48,,7,Q3-2025\\n" +
+"HX-2099,Kessler Pharma,Technology,Mid-Market,325,Business,Monthly,1986,2023-01-07,,At-Risk,No,,34,15,34,38,,27,Q1-2024\\n" +
+"HX-2100,Lodestar Research,Hospitality,Enterprise,762,Enterprise,Monthly,7988,2023-03-03,,At-Risk,No,,48,1,13,2,,25,Q1-2024\\n" +
+"HX-2101,Meadow Creek Foods,Manufacturing,Mid-Market,413,Business,Multi-Year,2112,2023-12-31,,Active,No,,95,1,9,67,,15,Q4-2024\\n" +
+"HX-2102,Northgate Logistics,Technology,SMB,13,Starter,Multi-Year,90,2024-04-02,,Active,No,,91,1,2,59,,12,Q2-2025\\n" +
+"HX-2103,Offshore Wind Partners,Finance,Enterprise,1441,Enterprise,Monthly,5362,2023-11-30,2025-02-02,Churned,No,,29,17,37,4,Price,14,Q4-2024\\n" +
+"HX-2104,Piedmont Biotech,Professional Services,Mid-Market,151,Growth,Monthly,387,2024-01-19,,At-Risk,Yes,Avery Kim,18,13,22,24,,14,Q1-2025\\n" +
+"HX-2105,Quartersawn Timber,Hospitality,Enterprise,1439,Business,Annual,2245,2023-11-29,,At-Risk,Yes,Avery Kim,45,6,35,11,,16,Q4-2024\\n" +
+"HX-2106,Ridgeway Insurance,Finance,SMB,42,Starter,Monthly,116,2023-10-25,2024-08-09,Churned,Yes,Jordan Reyes,25,20,32,-2,Missing Feature,9,Q4-2024\\n" +
+"HX-2107,Stonewall Security,Education,SMB,39,Starter,Multi-Year,170,2023-01-09,,Active,Yes,Chris Nguyen,97,6,4,46,,27,Q1-2024\\n" +
+"HX-2108,Tidewater Marine,Nonprofit,Enterprise,1597,Business,Multi-Year,1792,2023-12-21,,Active,No,,75,3,12,56,,15,Q4-2024\\n" +
+"HX-2109,Upland Agricultural,Technology,Mid-Market,484,Business,Monthly,2162,2023-09-26,2024-05-16,Churned,No,,96,12,40,12,Competitor,7,Q3-2024\\n" +
+"HX-2110,Vineyard Creek Winery,Professional Services,Mid-Market,107,Growth,Multi-Year,717,2024-03-26,,At-Risk,No,,52,5,32,13,,12,Q1-2025";
+
+  /* ---------------- parsing ---------------- */
+  function parseCSV(text){
+    var lines = text.trim().split("\\n");
+    var headers = lines[0].split(",");
+    return lines.slice(1).map(function(line){
+      var cells = line.split(",");
+      var o = {};
+      headers.forEach(function(h,i){ o[h] = cells[i] !== undefined ? cells[i] : ""; });
+      return o;
+    });
+  }
+  var raw = parseCSV(CSV);
+  var rows = raw.map(function(r){
+    return Object.assign({}, r, {
+      employees: Number(r.employees),
+      mrr: Number(r.mrr),
+      product_usage_score: Number(r.product_usage_score),
+      support_tickets_90d: Number(r.support_tickets_90d),
+      last_login_days_ago: Number(r.last_login_days_ago),
+      nps_score: Number(r.nps_score),
+      months_as_customer: Number(r.months_as_customer)
+    });
+  });
+
+  function countBy(key){ var m={}; rows.forEach(function(r){ m[r[key]]=(m[r[key]]||0)+1; }); return m; }
+  function sumBy(key, list){ list = list||rows; var m={}; list.forEach(function(r){ m[r[key]]=(m[r[key]]||0)+r.mrr; }); return m; }
+  function fmtMoney(n){
+    if (Math.abs(n) >= 1000) return "$" + (n/1000).toFixed(1) + "K";
+    return "$" + n.toFixed(0);
+  }
+  function fmtInt(n){ return n.toLocaleString("en-US"); }
+  function esc(s){ return String(s); } // used only with textContent, kept for clarity
+
+  /* ---------------- tooltip ---------------- */
+  var tooltipEl = document.getElementById("viz-tooltip");
+  function showTooltip(x, y, label, value){
+    var valueEl = document.createElement("span"); valueEl.className="tt-value"; valueEl.textContent = value;
+    var labelEl = document.createElement("span"); labelEl.className="tt-label"; labelEl.textContent = label;
+    tooltipEl.textContent = "";
+    tooltipEl.appendChild(valueEl); tooltipEl.appendChild(labelEl);
+    var vw = window.innerWidth;
+    var left = x + 14, top = y + 14;
+    if (left + 230 > vw) left = x - 230;
+    tooltipEl.style.left = left + "px";
+    tooltipEl.style.top = top + "px";
+    tooltipEl.classList.add("show");
+  }
+  function hideTooltip(){ tooltipEl.classList.remove("show"); }
+
+  /* ---------------- dom helper ---------------- */
+  function el(tag, attrs, kids){
+    var e = document.createElement(tag);
+    if (attrs) Object.keys(attrs).forEach(function(k){
+      if (k === "class") e.className = attrs[k];
+      else if (k === "text") e.textContent = attrs[k];
+      else if (k === "html") { /* not used for untrusted content */ }
+      else e.setAttribute(k, attrs[k]);
+    });
+    (kids||[]).forEach(function(k){ if (k) e.appendChild(k); });
+    return e;
+  }
+  function svgEl(tag, attrs){
+    var e = document.createElementNS("http://www.w3.org/2000/svg", tag);
+    if (attrs) Object.keys(attrs).forEach(function(k){ e.setAttribute(k, attrs[k]); });
+    return e;
+  }
+
+  /* ================= DONUT CHART ================= */
+  function renderDonut(container, opts){
+    // opts: title, sub, data:[{label,value,color}], centerLabel
+    var total = opts.data.reduce(function(a,d){ return a+d.value; }, 0);
+    var card = el("div", {class:"card"});
+    card.appendChild(el("h3", {text: opts.title}));
+    card.appendChild(el("p", {class:"card-sub", text: opts.sub}));
+    var wrap = el("div", {class:"donut-wrap"});
+
+    var size = 220, cx = size/2, cy = size/2, rOuter = 92, rInner = 56;
+    var svg = svgEl("svg", {class:"donut-svg", viewBox:"0 0 "+size+" "+size, role:"img", "aria-label": opts.title});
+
+    function polar(r, angleDeg){
+      var a = (angleDeg - 90) * Math.PI/180;
+      return { x: cx + r*Math.cos(a), y: cy + r*Math.sin(a) };
+    }
+    function donutPath(rO, rI, a0, a1){
+      var p1 = polar(rO, a1), p2 = polar(rO, a0), p3 = polar(rI, a0), p4 = polar(rI, a1);
+      var large = (a1 - a0) > 180 ? 1 : 0;
+      return "M "+p1.x+" "+p1.y+
+        " A "+rO+" "+rO+" 0 "+large+" 0 "+p2.x+" "+p2.y+
+        " L "+p3.x+" "+p3.y+
+        " A "+rI+" "+rI+" 0 "+large+" 1 "+p4.x+" "+p4.y+" Z";
+    }
+
+    var gapDeg = (2 / ((rOuter+rInner)/2)) * (180/Math.PI); // ~2px linear gap in angle
+    var angle = 0;
+    var legend = el("ul", {class:"legend"});
+    var outLabels = [];
+
+    opts.data.forEach(function(d){
+      var share = d.value/total;
+      var sweep = share*360;
+      var a0 = angle + gapDeg/2;
+      var a1 = angle + sweep - gapDeg/2;
+      if (a1 < a0) a1 = a0;
+      var path = svgEl("path", {
+        d: donutPath(rOuter, rInner, a0, a1),
+        fill: d.color, class:"donut-slice", tabindex:"0",
+        role:"img", "aria-label": d.label + ": " + fmtInt(d.value) + " (" + Math.round(share*100) + "%)"
+      });
+      path.addEventListener("pointerenter", function(ev){ showAt(ev); });
+      path.addEventListener("pointermove", function(ev){ showAt(ev); });
+      path.addEventListener("focus", function(){
+        var mid = (a0+a1)/2; var p = polar((rOuter+rInner)/2, mid);
+        var rect = svg.getBoundingClientRect();
+        var scale = rect.width/size;
+        showTooltip(rect.left + p.x*scale, rect.top + p.y*scale, d.label, fmtInt(d.value) + " · " + Math.round(share*100) + "%");
+      });
+      path.addEventListener("blur", hideTooltip);
+      path.addEventListener("pointerleave", hideTooltip);
+      function showAt(ev){ showTooltip(ev.clientX, ev.clientY, d.label, fmtInt(d.value) + " · " + Math.round(share*100) + "%"); }
+      svg.appendChild(path);
+
+      if (share >= 0.08){
+        var mid = (a0+a1)/2;
+        var lp = polar(rOuter + 16, mid);
+        var anchor = (mid > 10 && mid < 170) ? "start" : (mid > 190 && mid < 350) ? "end" : "middle";
+        var t = svgEl("text", { x: lp.x, y: lp.y, class:"donut-outlabel", "text-anchor": anchor, "dominant-baseline":"middle" });
+        t.textContent = Math.round(share*100) + "%";
+        outLabels.push(t);
+      }
+
+      var li = el("li", {}, [
+        el("span", {class:"swatch", style:"background:"+d.color}),
+        el("span", {class:"lg-label", text:d.label}),
+        el("span", {class:"lg-value", text:fmtInt(d.value)}),
+        el("span", {class:"lg-pct", text:Math.round(share*100)+"%"})
+      ]);
+      legend.appendChild(li);
+
+      angle += sweep;
+    });
+    outLabels.forEach(function(t){ svg.appendChild(t); });
+
+    if (opts.centerLabel){
+      svg.appendChild(svgEl("text", { x:cx, y:cy-6, "text-anchor":"middle", class:"donut-center-value", style:"fill:var(--text-primary); font-size:26px;" })).textContent = opts.centerLabel;
+      svg.appendChild(svgEl("text", { x:cx, y:cy+16, "text-anchor":"middle", class:"donut-center-label", style:"font-size:11px;" })).textContent = opts.centerSub || "";
+    }
+
+    wrap.appendChild(svg);
+    wrap.appendChild(legend);
+    card.appendChild(wrap);
+
+    var det = el("details", {class:"table-toggle"});
+    det.appendChild(el("summary", {text:"View as table"}));
+    var tbl = el("table");
+    var thead = el("thead", {}, [el("tr", {}, [el("th",{text:opts.title}), el("th",{class:"num",text:"Count"}), el("th",{class:"num",text:"Share"})])]);
+    var tbody = el("tbody");
+    opts.data.forEach(function(d){
+      tbody.appendChild(el("tr", {}, [
+        el("td", {text:d.label}), el("td",{class:"num", text:fmtInt(d.value)}), el("td",{class:"num", text: Math.round(d.value/total*100)+"%"})
+      ]));
+    });
+    tbl.appendChild(thead); tbl.appendChild(tbody);
+    det.appendChild(tbl);
+    card.appendChild(det);
+
+    container.appendChild(card);
+  }
+
+  /* ================= HORIZONTAL BAR CHART ================= */
+  function renderHBar(container, opts){
+    // opts: title, sub, items:[{label,value,color}], formatter
+    var card = el("div", {class:"card"});
+    card.appendChild(el("h3", {text: opts.title}));
+    card.appendChild(el("p", {class:"card-sub", text: opts.sub}));
+    var list = el("div", {class:"hbar-list"});
+    var max = Math.max.apply(null, opts.items.map(function(d){return d.value;})) || 1;
+    var formatter = opts.formatter || fmtInt;
+
+    opts.items.forEach(function(d){
+      var pct = Math.max((d.value/max*100), 1.5);
+      var track = el("div", {class:"hbar-track", tabindex:"0", role:"img", "aria-label": d.label + ": " + formatter(d.value)});
+      var fill = el("div", {class:"hbar-fill", style:"width:"+pct+"%; background:"+d.color});
+      track.appendChild(fill);
+      function show(ev){ showTooltip(ev.clientX, ev.clientY, d.label, formatter(d.value)); }
+      track.addEventListener("pointerenter", show);
+      track.addEventListener("pointermove", show);
+      track.addEventListener("pointerleave", hideTooltip);
+      track.addEventListener("focus", function(){
+        var r = track.getBoundingClientRect();
+        showTooltip(r.left+r.width/2, r.top, d.label, formatter(d.value));
+      });
+      track.addEventListener("blur", hideTooltip);
+
+      var row = el("div", {class:"hbar-row"}, [
+        el("span", {class:"hbar-name", text:d.label}),
+        track,
+        el("span", {class:"hbar-value", text: formatter(d.value)})
+      ]);
+      list.appendChild(row);
+    });
+    card.appendChild(list);
+
+    var det = el("details", {class:"table-toggle"});
+    det.appendChild(el("summary", {text:"View as table"}));
+    var tbl = el("table");
+    var thead = el("thead", {}, [el("tr", {}, [el("th",{text:opts.title}), el("th",{class:"num",text:"Value"})])]);
+    var tbody = el("tbody");
+    opts.items.forEach(function(d){
+      tbody.appendChild(el("tr", {}, [ el("td", {text:d.label}), el("td",{class:"num", text: formatter(d.value)}) ]));
+    });
+    tbl.appendChild(thead); tbl.appendChild(tbody);
+    det.appendChild(tbl);
+    card.appendChild(det);
+
+    container.appendChild(card);
+  }
+
+  /* ================= DIVERGING NPS BAR ================= */
+  function renderNpsBar(container){
+    var promoters=0, passives=0, detractors=0;
+    rows.forEach(function(r){
+      if (r.nps_score >= 50) promoters++; else if (r.nps_score >= 0) passives++; else detractors++;
+    });
+    var total = rows.length;
+    var card = el("div", {class:"card"});
+    card.appendChild(el("h3", {text:"Net sentiment (NPS)"}));
+    card.appendChild(el("p", {class:"card-sub", text:"Every account bucketed by NPS score — detractor, passive, promoter."}));
+
+    var segs = [
+      {label:"Detractors", sub:"score < 0", value:detractors, color:"var(--critical)"},
+      {label:"Passives", sub:"score 0–49", value:passives, color:"var(--neutral-fill)"},
+      {label:"Promoters", sub:"score ≥ 50", value:promoters, color:"var(--good)"}
+    ];
+    var bar = el("div", {class:"nps-bar"});
+    segs.forEach(function(s, i){
+      var pct = s.value/total*100;
+      var seg = el("div", {class:"nps-seg", style:"width:"+pct+"%; background:"+s.color, tabindex:"0", role:"img", "aria-label": s.label+": "+s.value});
+      if (i>0) seg.style.marginLeft = "2px";
+      function show(ev){ showTooltip(ev.clientX, ev.clientY, s.label, s.value + " accounts · " + Math.round(pct)+"%"); }
+      seg.addEventListener("pointerenter", show);
+      seg.addEventListener("pointermove", show);
+      seg.addEventListener("pointerleave", hideTooltip);
+      seg.addEventListener("focus", function(){ var r=seg.getBoundingClientRect(); showTooltip(r.left+r.width/2, r.top, s.label, s.value+" accounts · "+Math.round(pct)+"%"); });
+      seg.addEventListener("blur", hideTooltip);
+      bar.appendChild(seg);
+    });
+    card.appendChild(bar);
+
+    var legend = el("div", {class:"nps-legend"});
+    segs.forEach(function(s){
+      legend.appendChild(el("div", {class:"nps-legend-item"}, [
+        el("span", {class:"swatch", style:"background:"+s.color}),
+        el("span", {text: s.label + " ("+s.sub+"): "}),
+        el("b", {text: s.value + " · " + Math.round(s.value/total*100) + "%"})
+      ]));
+    });
+    card.appendChild(legend);
+
+    var net = ((promoters/total*100) - (detractors/total*100)).toFixed(1);
+    var netRow = el("div", {class:"nps-net"});
+    netRow.appendChild(document.createTextNode("Net sentiment score (promoters % − detractors %): "));
+    var strong = el("strong", {text: (net>=0?"+":"") + net});
+    netRow.appendChild(strong);
+    card.appendChild(netRow);
+
+    container.appendChild(card);
+  }
+
+  /* ================= build KPIs ================= */
+  function buildKpis(){
+    var kpiRow = document.getElementById("kpi-row");
+    var totalMRR = rows.reduce(function(a,r){return a+r.mrr;},0);
+    var churned = rows.filter(function(r){return r.status==="Churned";}).length;
+    var atRisk = rows.filter(function(r){return r.status==="At-Risk";});
+    var atRiskMRR = atRisk.reduce(function(a,r){return a+r.mrr;},0);
+    var avgNps = rows.reduce(function(a,r){return a+r.nps_score;},0)/rows.length;
+    var csmCoverage = rows.filter(function(r){return r.csm_assigned==="Yes";}).length;
+
+    var tiles = [
+      { label:"Total accounts", value: fmtInt(rows.length), sub:"active contracts in the export", cls:"" },
+      { label:"Total MRR", value: fmtMoney(totalMRR), sub: fmtMoney(totalMRR*12)+" ARR run-rate", cls:"" },
+      { label:"Churn rate", value: Math.round(churned/rows.length*100)+"%", sub: churned+" churned of "+rows.length, cls:"critical" },
+      { label:"At-risk exposure", value: fmtMoney(atRiskMRR), sub: atRisk.length+" accounts flagged at-risk", cls:"warn" },
+      { label:"Avg. NPS", value: avgNps.toFixed(1), sub:"across all accounts", cls:"" },
+      { label:"CSM coverage", value: Math.round(csmCoverage/rows.length*100)+"%", sub: csmCoverage+" of "+rows.length+" accounts owned", cls:"good" }
+    ];
+    tiles.forEach(function(t){
+      kpiRow.appendChild(el("div", {class:"kpi-tile "+t.cls}, [
+        el("div", {class:"kpi-label", text:t.label}),
+        el("div", {class:"kpi-value", text:t.value}),
+        el("div", {class:"kpi-sub", text:t.sub})
+      ]));
+    });
+
+    var uncoveredMRR = rows.filter(function(r){return r.csm_assigned!=="Yes";}).reduce(function(a,r){return a+r.mrr;},0);
+    document.getElementById("uncovered-mrr-note").textContent = fmtMoney(uncoveredMRR);
+  }
+
+  /* ================= composition donuts ================= */
+  function buildDonuts(){
+    var grid = document.getElementById("donut-grid");
+
+    var statusCounts = countBy("status");
+    renderDonut(grid, {
+      title:"Account status", sub:"Active vs. at-risk vs. churned",
+      data:[
+        {label:"Active", value: statusCounts["Active"]||0, color:"var(--good)"},
+        {label:"At-Risk", value: statusCounts["At-Risk"]||0, color:"var(--warning)"},
+        {label:"Churned", value: statusCounts["Churned"]||0, color:"var(--critical)"}
+      ],
+      centerLabel: rows.length, centerSub:"accounts"
+    });
+
+    var planCounts = countBy("plan");
+    renderDonut(grid, {
+      title:"Plan tier", sub:"Starter → Enterprise, ordered by scale",
+      data:[
+        {label:"Starter", value: planCounts["Starter"]||0, color:"var(--ring-250)"},
+        {label:"Growth", value: planCounts["Growth"]||0, color:"var(--ring-350)"},
+        {label:"Business", value: planCounts["Business"]||0, color:"var(--ring-450)"},
+        {label:"Enterprise", value: planCounts["Enterprise"]||0, color:"var(--ring-550)"}
+      ]
+    });
+
+    var contractCounts = countBy("contract_type");
+    renderDonut(grid, {
+      title:"Contract type", sub:"Monthly → Multi-Year commitment",
+      data:[
+        {label:"Monthly", value: contractCounts["Monthly"]||0, color:"var(--ring-250)"},
+        {label:"Annual", value: contractCounts["Annual"]||0, color:"var(--ring-400)"},
+        {label:"Multi-Year", value: contractCounts["Multi-Year"]||0, color:"var(--ring-550)"}
+      ]
+    });
+
+    var sizeCounts = countBy("company_size");
+    renderDonut(grid, {
+      title:"Company size", sub:"SMB → Enterprise, ordered by scale",
+      data:[
+        {label:"SMB", value: sizeCounts["SMB"]||0, color:"var(--ring-250)"},
+        {label:"Mid-Market", value: sizeCounts["Mid-Market"]||0, color:"var(--ring-400)"},
+        {label:"Enterprise", value: sizeCounts["Enterprise"]||0, color:"var(--ring-550)"}
+      ]
+    });
+  }
+
+  /* ================= revenue bars ================= */
+  function buildRevenue(){
+    var grid = document.getElementById("revenue-grid");
+
+    var mrrByIndustry = sumBy("industry");
+    var industryItems = Object.keys(mrrByIndustry).map(function(k){ return {label:k, value:mrrByIndustry[k], color:"var(--series-1)"}; })
+      .sort(function(a,b){ return b.value-a.value; });
+    renderHBar(grid, { title:"MRR by industry", sub:"Monthly recurring revenue, all 12 industries served", items: industryItems, formatter: fmtMoney });
+
+    var csmRows = rows.filter(function(r){ return r.csm_name; });
+    var mrrByCsm = sumBy("csm_name", csmRows);
+    var csmItems = Object.keys(mrrByCsm).map(function(k){ return {label:k, value:mrrByCsm[k], color:"var(--series-1)"}; })
+      .sort(function(a,b){ return b.value-a.value; });
+    renderHBar(grid, { title:"MRR by CSM", sub:"Book of business for each named Customer Success Manager", items: csmItems, formatter: fmtMoney });
+  }
+
+  /* ================= health section ================= */
+  function buildHealth(){
+    var grid = document.getElementById("health-grid");
+    renderNpsBar(grid);
+
+    var reasonCounts = countBy("churn_reason");
+    delete reasonCounts[""];
+    var reasonItems = Object.keys(reasonCounts).map(function(k){ return {label:k, value:reasonCounts[k], color:"var(--series-1)"}; })
+      .sort(function(a,b){ return b.value-a.value; });
+    renderHBar(grid, { title:"Churn reasons", sub:"Stated reason across the 37 churned accounts", items: reasonItems, formatter: fmtInt });
+
+    // health table
+    var statuses = ["Active","At-Risk","Churned"];
+    var stripeMap = {"Active":"var(--good)", "At-Risk":"var(--warning)", "Churned":"var(--critical)"};
+    var table = document.getElementById("health-table");
+    var thead = el("thead", {}, [el("tr", {}, [
+      el("th", {text:"Status"}), el("th",{class:"num",text:"Accounts"}), el("th",{class:"num",text:"Total MRR"}),
+      el("th",{class:"num",text:"Avg usage"}), el("th",{class:"num",text:"Avg tickets/90d"}),
+      el("th",{class:"num",text:"Avg NPS"}), el("th",{class:"num",text:"Avg tenure (mo)"})
+    ])]);
+    var tbody = el("tbody");
+    statuses.forEach(function(s){
+      var subset = rows.filter(function(r){ return r.status===s; });
+      var n = subset.length;
+      var avg = function(key){ return n? (subset.reduce(function(a,r){return a+r[key];},0)/n) : 0; };
+      var mrrSum = subset.reduce(function(a,r){return a+r.mrr;},0);
+      var tr = el("tr", {}, [
+        el("td", {class:"status-cell", text:s, style:"--stripe:"+stripeMap[s]}),
+        el("td", {class:"num", text:fmtInt(n)}),
+        el("td", {class:"num", text:fmtMoney(mrrSum)}),
+        el("td", {class:"num", text:avg("product_usage_score").toFixed(1)}),
+        el("td", {class:"num", text:avg("support_tickets_90d").toFixed(1)}),
+        el("td", {class:"num", text:avg("nps_score").toFixed(1)}),
+        el("td", {class:"num", text:avg("months_as_customer").toFixed(1)})
+      ]);
+      tbody.appendChild(tr);
+    });
+    table.appendChild(thead); table.appendChild(tbody);
+  }
+
+  /* ================= engagement section ================= */
+  function buildEngagement(){
+    var grid = document.getElementById("engagement-grid");
+
+    var buckets = [
+      {label:"0–7 days", test:function(d){return d<=7;}, color:"var(--ring-250)"},
+      {label:"8–30 days", test:function(d){return d>7 && d<=30;}, color:"var(--ring-350)"},
+      {label:"31–90 days", test:function(d){return d>30 && d<=90;}, color:"var(--ring-450)"},
+      {label:"90+ days", test:function(d){return d>90;}, color:"var(--ring-550)"}
+    ];
+    var loginItems = buckets.map(function(b){
+      return {label:b.label, value: rows.filter(function(r){return b.test(r.last_login_days_ago);}).length, color:b.color};
+    });
+    renderHBar(grid, { title:"Last login recency", sub:"Days since last product login, all accounts", items: loginItems, formatter: fmtInt });
+
+    var quarterOrder = ["Q1-2024","Q2-2024","Q3-2024","Q4-2024","Q1-2025","Q2-2025","Q3-2025","Q4-2025"];
+    var renewalCounts = countBy("renewal_quarter");
+    var renewalItems = quarterOrder.filter(function(q){return renewalCounts[q];}).map(function(q){
+      return {label:q, value: renewalCounts[q], color:"var(--series-1)"};
+    });
+    renderHBar(grid, { title:"Upcoming renewals by quarter", sub:"Count of accounts due for renewal", items: renewalItems, formatter: fmtInt });
+  }
+
+  /* ================= roster table ================= */
+  var rosterState = { sortKey:"mrr", sortDir:-1, search:"", status:"All" };
+
+  function buildRosterFilters(){
+    var wrap = document.getElementById("roster-filters");
+    ["All","Active","At-Risk","Churned"].forEach(function(s){
+      var btn = el("button", {class:"filter-pill", type:"button", "aria-pressed": s===rosterState.status ? "true":"false", text:s});
+      btn.addEventListener("click", function(){
+        rosterState.status = s;
+        Array.prototype.forEach.call(wrap.children, function(b){ b.setAttribute("aria-pressed", b===btn ? "true":"false"); });
+        renderRoster();
+      });
+      wrap.appendChild(btn);
+    });
+    document.getElementById("roster-search").addEventListener("input", function(e){
+      rosterState.search = e.target.value.toLowerCase();
+      renderRoster();
+    });
+  }
+
+  var rosterCols = [
+    {key:"customer_id", label:"ID", num:false},
+    {key:"company_name", label:"Company", num:false},
+    {key:"industry", label:"Industry", num:false},
+    {key:"company_size", label:"Segment", num:false},
+    {key:"plan", label:"Plan", num:false},
+    {key:"mrr", label:"MRR", num:true},
+    {key:"status", label:"Status", num:false},
+    {key:"csm_name", label:"CSM", num:false},
+    {key:"product_usage_score", label:"Usage", num:true},
+    {key:"nps_score", label:"NPS", num:true},
+    {key:"last_login_days_ago", label:"Last login", num:true}
+  ];
+
+  function renderRoster(){
+    var filtered = rows.filter(function(r){
+      if (rosterState.status !== "All" && r.status !== rosterState.status) return false;
+      if (rosterState.search){
+        var hay = (r.company_name + " " + r.industry).toLowerCase();
+        if (hay.indexOf(rosterState.search) === -1) return false;
+      }
+      return true;
+    });
+    filtered.sort(function(a,b){
+      var k = rosterState.sortKey;
+      var av = a[k], bv = b[k];
+      if (typeof av === "string"){ av = av.toLowerCase(); bv = bv.toLowerCase(); }
+      if (av < bv) return -1*rosterState.sortDir;
+      if (av > bv) return 1*rosterState.sortDir;
+      return 0;
+    });
+
+    document.getElementById("roster-count").textContent = filtered.length + " of " + rows.length + " accounts shown";
+    document.getElementById("footer-count").textContent = rows.length + " accounts · " + fmtMoney(rows.reduce(function(a,r){return a+r.mrr;},0)) + " total MRR";
+
+    var table = document.getElementById("roster-table");
+    table.textContent = "";
+    var thead = el("thead");
+    var htr = el("tr");
+    rosterCols.forEach(function(c){
+      var th = el("th", {class:"sortable" + (c.num?" num":"") + (rosterState.sortKey===c.key?" active":""), tabindex:"0", role:"button", "aria-label":"Sort by "+c.label});
+      th.appendChild(document.createTextNode(c.label));
+      var arrow = el("span", {class:"arrow", text: rosterState.sortKey===c.key ? (rosterState.sortDir===1?"▲":"▼") : "↕"});
+      th.appendChild(arrow);
+      th.addEventListener("click", function(){
+        if (rosterState.sortKey === c.key) rosterState.sortDir *= -1;
+        else { rosterState.sortKey = c.key; rosterState.sortDir = c.num ? -1 : 1; }
+        renderRoster();
+      });
+      th.addEventListener("keydown", function(e){ if (e.key==="Enter" || e.key===" "){ e.preventDefault(); th.click(); } });
+      htr.appendChild(th);
+    });
+    thead.appendChild(htr);
+    table.appendChild(thead);
+
+    var tbody = el("tbody");
+    filtered.forEach(function(r){
+      var statusClass = r.status==="Active" ? "active" : r.status==="At-Risk" ? "at-risk" : "churned";
+      var tr = el("tr", {}, [
+        el("td", {text:r.customer_id}),
+        el("td", {text:r.company_name}),
+        el("td", {text:r.industry}),
+        el("td", {text:r.company_size}),
+        el("td", {text:r.plan}),
+        el("td", {class:"num", text:fmtMoney(r.mrr)}),
+        el("td", {}, [ el("span", {class:"chip "+statusClass, text:r.status}) ]),
+        el("td", {text: r.csm_name || "—"}),
+        el("td", {class:"num", text:r.product_usage_score}),
+        el("td", {class:"num", text:r.nps_score}),
+        el("td", {class:"num", text:r.last_login_days_ago + "d"})
+      ]);
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+  }
+
+  /* ================= init ================= */
+  document.getElementById("snapshot-date").textContent = new Date().toLocaleDateString("en-US", {year:"numeric", month:"long", day:"numeric"});
+  buildKpis();
+  buildDonuts();
+  buildRevenue();
+  buildHealth();
+  buildEngagement();
+  buildRosterFilters();
+  renderRoster();
+})();
+</script>
