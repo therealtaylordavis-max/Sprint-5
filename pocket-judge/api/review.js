@@ -3,7 +3,7 @@
 // The browser sends a few still frames from the clip (JPEG, base64) plus the
 // deductions the on-device pose tracker flagged. Claude checks each flag
 // against the frames and writes level-appropriate coaching feedback.
-// ANTHROPIC_API_KEY lives only in the Vercel project's environment variables.
+// The API key lives only in the Vercel project's environment variables.
 
 import Anthropic from '@anthropic-ai/sdk';
 
@@ -11,6 +11,10 @@ const MODEL = 'claude-opus-5';
 const MAX_FRAMES = 8;
 const MAX_FRAME_BYTES = 450_000; // base64 chars per frame
 const RATE = { windowMs: 10 * 60 * 1000, max: 12 }; // per IP, per warm instance
+
+// The key is read from ANTHROPIC_API_KEY, or from the name it was saved under
+// in this project's Vercel settings.
+const apiKey = () => process.env.ANTHROPIC_API_KEY || process.env.AnthropicAPIPocketJudge;
 
 const hits = new Map();
 function rateLimited(ip) {
@@ -94,7 +98,7 @@ export default async function handler(req, res) {
     res.setHeader('Allow', 'POST');
     return res.status(405).json({ error: 'Use POST.' });
   }
-  if (!process.env.ANTHROPIC_API_KEY) {
+  if (!apiKey()) {
     return res.status(503).json({ error: 'AI review is not set up yet (missing ANTHROPIC_API_KEY).' });
   }
   const origin = req.headers.origin;
@@ -130,7 +134,7 @@ export default async function handler(req, res) {
     content.push({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: f.data } });
   }
 
-  const client = new Anthropic();
+  const client = new Anthropic({ apiKey: apiKey() });
   try {
     const response = await client.beta.messages.create({
       model: MODEL,
