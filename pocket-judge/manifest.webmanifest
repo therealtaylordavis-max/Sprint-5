@@ -4,7 +4,7 @@
   "description": "Estimated gymnastics execution scores, deductions, and coaching cues from your phone.",
   "start_url": "./",
   "display": "standalone",
-  "background_color": "#f6f5f2",
-  "theme_color": "#4a3aa7",
+  "background_color": "#fdf6f9",
+  "theme_color": "#c2185b",
   "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml" }]
 }
