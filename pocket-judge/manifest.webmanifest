@@ -1,0 +1,10 @@
+{
+  "name": "Pocket Judge",
+  "short_name": "Pocket Judge",
+  "description": "Estimated gymnastics execution scores, deductions, and coaching cues from your phone.",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f6f5f2",
+  "theme_color": "#4a3aa7",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+}

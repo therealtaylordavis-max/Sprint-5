@@ -125,7 +125,7 @@ export function analyze({ frames, event, levelId, startValue = 10, skills = [] }
 
   if (valid.length < 5) {
     return {
-      startValue, score: startValue, total: 0, deductions: [], feedback: [], strengths: [],
+      untracked: true, startValue, score: null, total: 0, deductions: [], feedback: [], strengths: [],
       coverage, warning: 'The athlete could not be tracked in this clip. Film from the side, keep the whole body in frame, and use good lighting.',
     };
   }
@@ -273,11 +273,13 @@ export function analyze({ frames, event, levelId, startValue = 10, skills = [] }
     if (deepest < 80) add('deepLanding', deepest < 60 ? 2 : 1, t0, `Hips closed to ~${Math.round(deepest)}° on landing`);
   });
 
-  return finalize({ startValue, deductions: flags, event: ev.id, skills, coverage, levelId });
+  const leaps = ms.some((m, i) => airborne[i] && !m.inverted && m.split > 60);
+  const observed = { landing: landings.length > 0, leap: leaps };
+  return finalize({ startValue, deductions: flags, event: ev.id, skills, coverage, levelId, observed });
 }
 
 // Recompute totals & feedback from the (possibly user-edited) deduction list.
-export function finalize({ startValue, deductions, event, skills = [], coverage = 1, levelId }) {
+export function finalize({ startValue, deductions, event, skills = [], coverage = 1, levelId, observed = {} }) {
   const level = levelById(levelId);
   const live = deductions.filter((d) => d.active);
   // USAG caps: feet & steps don't stack indefinitely.
@@ -302,18 +304,19 @@ export function finalize({ startValue, deductions, event, skills = [], coverage 
     return { key, label: DEDUCTIONS[key].label, count: list.length, cost: +sum(list).toFixed(2), ...c };
   });
   const strengths = Object.entries(POSITIVE)
-    .filter(([k]) => !byKey[k] && relevant(k, event))
+    .filter(([k]) => coverage >= 0.6 && !byKey[k] && relevant(k, event, observed))
     .map(([, v]) => v);
 
   return {
-    startValue, score, total, deductions, feedback, strengths, coverage, level: level.id,
+    startValue, score, total, deductions, feedback, strengths, coverage, level: level.id, observed,
     warning: coverage < 0.6 ? 'The athlete was only tracked in part of this clip, so some deductions may be missed. Keep the whole body in frame.' : null,
   };
 }
 
 const sum = (list) => list.reduce((s, d) => s + d.amount, 0);
-const relevant = (key, event) => {
-  if (key === 'splitShort') return ['floor', 'beam'].includes(event);
+const relevant = (key, event, observed) => {
+  if (key === 'landingStep') return observed.landing !== false;
+  if (key === 'splitShort') return ['floor', 'beam'].includes(event) && observed.leap !== false;
   if (key === 'balanceCheck') return event === 'beam';
   return true;
 };
