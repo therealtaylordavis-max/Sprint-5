@@ -104,6 +104,10 @@ input:focus, select:focus, textarea:focus, .btn:focus-visible, .chip:focus-visib
 
 .pill { display: inline-block; font-size: .72rem; font-weight: 600; padding: .15rem .5rem; border-radius: 999px; background: var(--surface-2); color: var(--text-2); }
 .pill.coach { background: var(--accent-soft); color: var(--text); }
+.pill.ai-ok { background: var(--good-soft); color: var(--text); }
+.pill.ai-bad { background: var(--bad-soft); color: var(--text); }
+#ai h2 svg { width: 20px; height: 20px; vertical-align: -3px; color: var(--accent); }
+button.time { font: inherit; font-size: .8rem; background: var(--surface-2); border: 0; border-radius: 6px; padding: .2rem .45rem; color: var(--text-2); cursor: pointer; }
 
 .tile { display: block; text-decoration: none; color: inherit; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: .9rem 1rem; box-shadow: var(--shadow); }
 .tile:hover { border-color: var(--accent); }

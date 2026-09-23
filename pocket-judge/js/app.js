@@ -4,6 +4,7 @@ import { trackVideo, loadLandmarker, CONNECTIONS } from './pose.js';
 import * as db from './store.js';
 import { lineChart, sparkline, barList } from './charts.js';
 import { loadSample } from './sample.js';
+import { pickFrameTimes, captureFrames, requestReview } from './ai.js';
 
 const $app = document.getElementById('app');
 const $nav = document.getElementById('nav');
@@ -33,6 +34,7 @@ const I = {
   gymnast: '<circle cx="12" cy="4.5" r="2"/><path d="M12 7.5v6m0 0-4 6m4-6 4 6M5 10l7-1.5L19 10"/>',
   whistle: '<circle cx="9" cy="14" r="5"/><path d="M13 11h8v4h-5M9 14h.01M6 5l2 3M3 8l3 1"/>',
   trash: '<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>',
+  sparkle: '<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8z"/>',
 };
 const icon = (name) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${I[name]}</svg>`;
 
@@ -484,6 +486,7 @@ async function viewSession(id) {
         <p class="small muted">Tap a deduction to dismiss it if the app got it wrong — the score updates.</p>
         <ul class="list" id="deds"></ul></div>
     </div>
+    <div class="card" id="ai"></div>
     <div class="card"><h2>Coaching feedback</h2><div id="fb"></div></div>
     <div class="grid two">
       <label class="card field">Gymnast notes<textarea id="notes" ${isCoach ? 'readonly' : ''} placeholder="How did it feel?">${esc(session.notes)}</textarea></label>
@@ -501,7 +504,7 @@ async function viewSession(id) {
     qs('#deds').innerHTML = ds.length ? ds.map((d) => `
       <li class="ded ${d.active ? '' : 'off'}">
         <button class="time" data-t="${d.t}" aria-label="Jump to ${d.t} seconds">${d.t.toFixed(1)}s</button>
-        <div class="grow"><strong>${esc(d.label)}</strong><div class="small muted">${esc(d.detail || '')}</div></div>
+        <div class="grow"><strong>${esc(d.label)}</strong> ${verdictBadge(d.id)}<div class="small muted">${esc(d.detail || '')}</div>${verdictNote(d.id)}</div>
         <span class="amount">−${fmt(d.amount)}</span>
         <button class="btn sm" data-toggle="${d.id}" aria-pressed="${!d.active}">${d.active ? 'Dismiss' : 'Restore'}</button>
       </li>`).join('') : '<li>No deductions detected — clean work!</li>';
@@ -519,7 +522,78 @@ async function viewSession(id) {
         <ul>${f.drills.map((x) => `<li>${esc(x)}</li>`).join('')}</ul></div>`).join('') : '')
       + (session.result.strengths?.length ? banner('good', `<strong>What went well:</strong> ${session.result.strengths.map(esc).join(' ')}`) : '');
     drawTimeline();
+    renderAI();
   };
+
+  const verdictFor = (id) => session.aiReview?.verdicts?.find((v) => v.id === id);
+  function verdictBadge(id) {
+    const v = verdictFor(id);
+    if (!v) return '';
+    const [cls, text] = { confirmed: ['ai-ok', 'AI: confirmed'], likely_wrong: ['ai-bad', 'AI: looks wrong'], uncertain: ['', 'AI: unsure'] }[v.verdict] || ['', 'AI'];
+    return `<span class="pill ${cls}">${text}</span>`;
+  }
+  function verdictNote(id) {
+    const v = verdictFor(id);
+    return v?.note ? `<div class="small muted">${esc(v.note)}</div>` : '';
+  }
+
+  function renderAI() {
+    const host = qs('#ai');
+    if (!url) { host.hidden = true; return; }
+    const r = session.aiReview;
+    const wrong = r ? session.result.deductions.filter((d) => d.active && verdictFor(d.id)?.verdict === 'likely_wrong') : [];
+    host.innerHTML = `
+      <div class="row spread"><h2 style="margin:0">${icon('sparkle')} AI coach review</h2>
+        <button class="btn sm ${r ? '' : 'primary'}" id="ai-go">${r ? 'Run again' : 'Get AI coach review'}</button></div>
+      ${r ? `
+        <p style="margin-top:.75rem">${esc(r.summary)}</p>
+        ${wrong.length ? `<div class="row" style="margin-bottom:.75rem"><button class="btn sm" id="ai-apply">Dismiss ${wrong.length} flag${wrong.length > 1 ? 's' : ''} the AI thinks are wrong</button></div>` : ''}
+        ${r.cues.map((c) => `<div class="cue"><strong>${esc(c.title)}</strong><p style="margin:.25rem 0 0">${esc(c.cue)}</p>
+          ${c.drills?.length ? `<ul>${c.drills.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}</div>`).join('')}
+        ${r.extra_faults?.length ? `<h3>Also noticed (not scored)</h3><ul class="list">${r.extra_faults.map((f) => `<li><button class="time" data-ai-t="${Number(f.t) || 0}">${(Number(f.t) || 0).toFixed(1)}s</button><div class="grow"><strong>${esc(f.label)}</strong><div class="small muted">${esc(f.note)}</div></div></li>`).join('')}</ul>` : ''}
+        ${r.strengths?.length ? banner('good', `<strong>Strengths:</strong> ${r.strengths.map(esc).join(' ')}`) : ''}
+        <p class="small muted">Reviewed by Claude from ${session.aiFrames || 'a few'} still frames${session.aiReviewedAt ? ` on ${fmtDate(session.aiReviewedAt, { month: 'short', day: 'numeric' })}` : ''}. AI feedback can be wrong; the score only changes if you dismiss a flag.</p>`
+      : `<p class="small muted" style="margin:.6rem 0 0">Sends up to 8 still frames (never the full video) to Claude, which checks each flagged deduction and writes personalised coaching cues.</p>`}
+      <div id="ai-status" class="small muted" style="margin-top:.5rem"></div>`;
+    qs('#ai-go', host).addEventListener('click', runAI);
+    qs('#ai-apply', host)?.addEventListener('click', async () => {
+      wrong.forEach((d) => { d.active = false; });
+      await db.saveSession(session);
+      draw();
+      toast('Dismissed the flags the AI disagreed with.');
+    });
+    host.querySelectorAll('[data-ai-t]').forEach((b) => b.addEventListener('click', () => seekTo(+b.dataset.aiT)));
+  }
+
+  async function runAI() {
+    if (!(await ensureAIConsent())) return;
+    const status = qs('#ai-status');
+    const btn = qs('#ai-go');
+    btn.disabled = true;
+    try {
+      status.textContent = 'Grabbing still frames…';
+      const duration = session.duration || vid?.duration || 1;
+      const frames = await captureFrames(video, pickFrameTimes(session.result.deductions, duration));
+      status.textContent = 'Claude is reviewing the frames — this usually takes 10–40 seconds…';
+      const review = await requestReview({
+        event: eventById(session.event).name,
+        level: `${levelById(session.levelId).name} (${levelById(session.levelId).group})`,
+        skills: session.skills || [],
+        startValue: session.result.startValue,
+        score: session.result.score,
+        deductions: session.result.deductions.filter((d) => d.active).map(({ id, t, label, detail, amount }) => ({ id, t, label, detail, amount })),
+        frames,
+      });
+      session.aiReview = review;
+      session.aiFrames = frames.length;
+      session.aiReviewedAt = Date.now();
+      await db.saveSession(session);
+      draw();
+    } catch (e) {
+      btn.disabled = false;
+      status.innerHTML = banner('warn', esc(e.message));
+    }
+  }
 
   const vid = qs('#vid');
   const seekTo = (t) => { if (vid) { vid.pause(); vid.currentTime = t; vid.scrollIntoView({ behavior: 'smooth', block: 'center' }); } };
@@ -590,6 +664,25 @@ async function viewSession(id) {
     await db.deleteSession(id);
     location.hash = isCoach ? `#/athlete/${session.athleteId}` : '#/progress';
   });
+}
+
+async function ensureAIConsent() {
+  if (await db.getSetting('aiConsent')) return true;
+  const dlg = document.createElement('dialog');
+  dlg.innerHTML = `<form method="dialog">
+    <h2>Before you use AI coach review</h2>
+    <p class="small">This sends up to <strong>8 still frames</strong> from this clip, plus the flagged deductions, to <strong>Anthropic's Claude</strong> to get feedback. The full video is never uploaded, and nothing is sent unless you tap the review button.</p>
+    <p class="small">If the gymnast is under 18, a parent or guardian should agree before using this feature.</p>
+    <label class="row small"><input type="checkbox" name="ok" required /> I understand and agree</label>
+    <div class="row" style="margin-top:.9rem"><button class="btn primary" value="yes">Continue</button><button class="btn" value="no" formnovalidate>Cancel</button></div>
+  </form>`;
+  document.body.appendChild(dlg);
+  dlg.showModal();
+  const answer = await new Promise((resolve) => dlg.addEventListener('close', () => resolve(dlg.returnValue)));
+  dlg.remove();
+  if (answer !== 'yes') return false;
+  await db.setSetting('aiConsent', true);
+  return true;
 }
 
 // ---- Progress --------------------------------------------------------------------
@@ -777,6 +870,7 @@ async function viewSettings() {
   const athlete = state.athleteId ? await db.getAthlete(state.athleteId) : null;
   const theme = await db.getSetting('theme', 'auto');
   const hasPin = !!(await db.getSetting('coachPin'));
+  const aiConsent = !!(await db.getSetting('aiConsent'));
   $app.innerHTML = `
     <h1>Settings</h1>
     <div class="grid two">
@@ -805,6 +899,12 @@ async function viewSettings() {
         <label class="field">Theme <select id="theme"><option value="auto">Match device</option><option value="light">Light</option><option value="dark">Dark</option></select></label>
         <div class="row"><button class="btn" id="sample">Load sample athlete</button><button class="btn danger" id="reset">Erase all data</button></div>
       </div>
+      <div class="card">
+        <h2>AI coach review</h2>
+        <p class="small muted">Optional. When you tap “Get AI coach review” on a session, up to 8 still frames (never the full video) are sent to Anthropic's Claude for feedback.</p>
+        <p class="small">Consent: <strong>${aiConsent ? 'given' : 'not given yet'}</strong></p>
+        ${aiConsent ? '<button class="btn sm" id="ai-revoke">Withdraw consent</button>' : ''}
+      </div>
     </div>
     <div class="card"><h2>About the scores</h2>
       <p class="small">Pocket Judge tracks 33 body landmarks in every sampled frame (on your device, with MediaPipe) and measures elbow, knee, hip, shoulder and ankle angles, leg separation and split, flight and landing phases. Those measurements are compared against simplified execution tables for your level (USA Gymnastics Development Program / Xcel sizes, or FIG sizes for elite and upper men's levels) to estimate deductions from your start value.</p>
@@ -812,6 +912,7 @@ async function viewSettings() {
       <h3>Filming tips</h3>${FILMING_TIPS}
     </div>`;
   qs('#theme').value = theme;
+  qs('#ai-revoke')?.addEventListener('click', async () => { await db.setSetting('aiConsent', false); toast('AI review consent withdrawn.'); route(); });
   qs('#theme').addEventListener('change', async (e) => { await db.setSetting('theme', e.target.value); applyTheme(e.target.value); });
   qs('#prof').addEventListener('submit', async (e) => {
     e.preventDefault();
