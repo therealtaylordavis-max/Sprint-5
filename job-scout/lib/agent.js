@@ -2,13 +2,14 @@
 
 import Anthropic from "@anthropic-ai/sdk";
 import { SYSTEM_PROMPT } from "./prompt.js";
+import { cleanKey } from "./keys.js";
 import { TOOL_DEFINITIONS, updateEmployerList, findOpenRoles } from "./tools.js";
 
 const MODEL = process.env.CLAUDE_MODEL || "claude-opus-5-5";
 const MAX_STEPS = 8;
 
 let client;
-const getClient = () => (client ??= new Anthropic());
+const getClient = () => (client ??= new Anthropic({ apiKey: cleanKey(process.env.ANTHROPIC_API_KEY) }));
 
 // After a mid-output safety fallback, model-internal blocks that came before the
 // final `fallback` marker must not be echoed back on the next request.

@@ -7,6 +7,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { runAgent } from "../lib/agent.js";
 import { MAX_EMPLOYERS } from "../lib/tools.js";
+import { anthropicKeyProblem } from "../lib/keys.js";
 
 const MAX_BODY_CHARS = 1_500_000;
 const MAX_MESSAGE_CHARS = 4000;
@@ -28,6 +29,7 @@ export default async function handler(req, res) {
         tavily: Boolean(process.env.TAVILY_API_KEY),
         firecrawl: Boolean(process.env.FIRECRAWL_API_KEY),
       },
+      anthropicKeyProblem: process.env.ANTHROPIC_API_KEY ? anthropicKeyProblem(process.env.ANTHROPIC_API_KEY) : null,
       passcodeRequired: Boolean(process.env.APP_PASSCODE),
     });
   }
@@ -65,7 +67,7 @@ export default async function handler(req, res) {
   } catch (err) {
     console.error(err);
     if (err instanceof Anthropic.RateLimitError) return res.status(429).json({ error: "Claude is rate limited right now. Try again in a minute." });
-    if (err instanceof Anthropic.AuthenticationError) return res.status(500).json({ error: "The server's ANTHROPIC_API_KEY was rejected." });
+    if (err instanceof Anthropic.AuthenticationError) return res.status(500).json({ error: `Anthropic rejected the server's ANTHROPIC_API_KEY. ${anthropicKeyProblem(process.env.ANTHROPIC_API_KEY) || "The key may be deleted, disabled, or from a workspace without API access. Create a new key at console.anthropic.com > API keys, replace it in Vercel, and redeploy."}` });
     if (err instanceof Anthropic.BadRequestError) return res.status(400).json({ error: `Claude rejected the request: ${err.message}. Try starting a new chat.` });
     if (err instanceof Anthropic.APIError) return res.status(502).json({ error: `Claude API error (${err.status ?? "network"}). Try again.` });
     return res.status(500).json({ error: "Something broke on the server. Try again." });

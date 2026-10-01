@@ -1,6 +1,7 @@
 // Tavily (web search) and Firecrawl (page -> clean text / structured data) clients.
 
 import { postJSON } from "./http.js";
+import { cleanKey } from "./keys.js";
 
 export const hasTavily = () => Boolean(process.env.TAVILY_API_KEY);
 export const hasFirecrawl = () => Boolean(process.env.FIRECRAWL_API_KEY);
@@ -15,7 +16,7 @@ export async function tavilySearch(query, { maxResults = 8, includeDomains } = {
       search_depth: "basic",
       ...(includeDomains ? { include_domains: includeDomains } : {}),
     },
-    { headers: { authorization: `Bearer ${process.env.TAVILY_API_KEY}` }, timeoutMs: 15000 },
+    { headers: { authorization: `Bearer ${cleanKey(process.env.TAVILY_API_KEY)}` }, timeoutMs: 15000 },
   );
   return (data.results || []).map((r) => ({ title: r.title, url: r.url, snippet: r.content }));
 }
@@ -24,7 +25,7 @@ async function firecrawlScrape(body, timeoutMs) {
   const data = await postJSON(
     "https://api.firecrawl.dev/v1/scrape",
     { timeout: timeoutMs - 2000, ...body },
-    { headers: { authorization: `Bearer ${process.env.FIRECRAWL_API_KEY}` }, timeoutMs },
+    { headers: { authorization: `Bearer ${cleanKey(process.env.FIRECRAWL_API_KEY)}` }, timeoutMs },
   );
   if (!data.success) throw new Error(`Firecrawl failed for ${body.url}`);
   return data.data || {};

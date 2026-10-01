@@ -419,7 +419,10 @@ function download(roles) {
   try {
     const s = await (await fetch("/api/chat")).json();
     const missing = Object.entries({ Claude: s.keys.anthropic, Tavily: s.keys.tavily, Firecrawl: s.keys.firecrawl }).filter(([, on]) => !on).map(([k]) => k);
-    if (missing.length) { const b = $("#banner"); b.hidden = false; b.textContent = `Setup needed: the ${missing.join(", ")} API key${missing.length > 1 ? "s are" : " is"} missing on the server.`; }
+    const notes = [];
+    if (missing.length) notes.push(`the ${missing.join(", ")} API key${missing.length > 1 ? "s are" : " is"} missing on the server`);
+    if (s.anthropicKeyProblem) notes.push(`ANTHROPIC_API_KEY problem: ${s.anthropicKeyProblem}`);
+    if (notes.length) { const b = $("#banner"); b.hidden = false; b.textContent = `Setup needed: ${notes.join(". ")}`; }
   } catch {}
 })();
 let rt; addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(renderMatches, 150); });

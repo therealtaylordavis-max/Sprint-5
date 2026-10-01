@@ -94,3 +94,14 @@ test("update_employer_list finds boards by slug and find_open_roles returns grou
   const empty = await findOpenRoles({ role_query: "pm", title_keywords: ["pm"], location: "", remote_only: false }, []);
   assert.ok(empty.forModel.error);
 });
+
+import { cleanKey, anthropicKeyProblem } from "../lib/keys.js";
+test("API key cleanup and diagnosis", () => {
+  const good = "sk-ant-api03-" + "a".repeat(90);
+  assert.equal(cleanKey(`  "${good}"\n`), good);
+  assert.equal(cleanKey(`ANTHROPIC_API_KEY=${good}`), good);
+  assert.equal(anthropicKeyProblem(good), null);
+  assert.match(anthropicKeyProblem("sk-ant-admin01-xyz"), /Admin/);
+  assert.match(anthropicKeyProblem("tvly-123"), /doesn't look like/);
+  assert.match(anthropicKeyProblem("sk-ant-api03-short"), /cut off/);
+});
