@@ -1,0 +1,522 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Job Scout</title>
+<meta name="description" content="A brutally honest career coach that finds open roles at the companies you choose.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.6/purify.min.js"></script>
+<style>
+  :root{
+    color-scheme: light;
+    --page:#f9f9f7; --surface-1:#fcfcfb; --surface-2:#ffffff; --surface-3:#f1f0ec;
+    --text-primary:#0b0b0b; --text-secondary:#52514e; --text-muted:#898781;
+    --grid:#e1e0d9; --axis:#c3c2b7; --border:rgba(11,11,11,0.10);
+    --accent:#2a78d6; --accent-ink:#ffffff;
+    --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100; --s5:#e87ba4; --s6:#008300; --s7:#4a3aa7; --s8:#e34948;
+    --neutral-fill:#a9a79f;
+    --good:#0ca30c; --critical:#d03b3b; --warning:#b87d00;
+    --shadow: 0 1px 2px rgba(11,11,11,0.06), 0 8px 24px -12px rgba(11,11,11,0.14);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      color-scheme: dark;
+      --page:#0d0d0d; --surface-1:#1a1a19; --surface-2:#202020; --surface-3:#262625;
+      --text-primary:#ffffff; --text-secondary:#c3c2b7; --text-muted:#95938c;
+      --grid:#2c2c2a; --axis:#383835; --border:rgba(255,255,255,0.10);
+      --accent:#3987e5;
+      --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181; --s6:#008300; --s7:#9085e9; --s8:#e66767;
+      --neutral-fill:#5a584f; --warning:#e0a420;
+      --shadow: 0 1px 2px rgba(0,0,0,0.4), 0 8px 24px -12px rgba(0,0,0,0.6);
+    }
+  }
+  :root[data-theme="dark"]{
+    color-scheme: dark;
+    --page:#0d0d0d; --surface-1:#1a1a19; --surface-2:#202020; --surface-3:#262625;
+    --text-primary:#ffffff; --text-secondary:#c3c2b7; --text-muted:#95938c;
+    --grid:#2c2c2a; --axis:#383835; --border:rgba(255,255,255,0.10);
+    --accent:#3987e5;
+    --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181; --s6:#008300; --s7:#9085e9; --s8:#e66767;
+    --neutral-fill:#5a584f; --warning:#e0a420;
+    --shadow: 0 1px 2px rgba(0,0,0,0.4), 0 8px 24px -12px rgba(0,0,0,0.6);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--page);color:var(--text-primary);font:14px/1.5 Inter,system-ui,-apple-system,sans-serif}
+  a{color:var(--accent)}
+  button,input,select,textarea{font:inherit;color:inherit}
+  .app{display:grid;grid-template-columns:minmax(340px,5fr) 7fr;gap:16px;padding:16px;max-width:1600px;margin:0 auto;height:100dvh}
+  header.top{grid-column:1/-1;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  header.top h1{font-size:18px;margin:0;font-weight:700;letter-spacing:-0.01em}
+  header.top .tag{color:var(--text-secondary);font-size:13px}
+  .spacer{flex:1}
+  .keys{display:flex;gap:6px;flex-wrap:wrap}
+  .key{font-size:12px;padding:2px 8px;border-radius:999px;border:1px solid var(--border);color:var(--text-secondary);display:inline-flex;align-items:center;gap:5px}
+  .key i{width:7px;height:7px;border-radius:50%;background:var(--neutral-fill);display:inline-block}
+  .key.on i{background:var(--good)} .key.off i{background:var(--critical)}
+  .btn{border:1px solid var(--border);background:var(--surface-2);border-radius:8px;padding:6px 12px;cursor:pointer}
+  .btn:hover{background:var(--surface-3)}
+  .btn.primary{background:var(--accent);color:var(--accent-ink);border-color:transparent}
+  .btn.primary:disabled{opacity:.5;cursor:default}
+  .panel{background:var(--surface-1);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);min-height:0;display:flex;flex-direction:column}
+  .app{grid-template-rows:auto minmax(0,1fr)}
+
+  /* Chat */
+  .chips{display:flex;gap:6px;flex-wrap:wrap;padding:12px 14px;border-bottom:1px solid var(--border);align-items:center}
+  .chips .label{font-size:12px;color:var(--text-muted);margin-right:4px}
+  .chip{display:inline-flex;align-items:center;gap:6px;padding:3px 4px 3px 10px;border-radius:999px;background:var(--surface-3);font-size:12.5px}
+  .chip .dot{width:8px;height:8px;border-radius:50%}
+  .chip small{color:var(--text-muted)}
+  .chip button{border:0;background:transparent;cursor:pointer;color:var(--text-muted);padding:0 6px;font-size:14px;line-height:1}
+  .chip.missing{outline:1px dashed var(--critical)}
+  .msgs{flex:1;overflow:auto;padding:16px 14px;display:flex;flex-direction:column;gap:14px}
+  .msg{max-width:100%}
+  .msg.user{align-self:flex-end;background:var(--accent);color:var(--accent-ink);padding:8px 12px;border-radius:14px 14px 4px 14px;max-width:85%;white-space:pre-wrap}
+  .msg.bot{align-self:stretch}
+  .msg.bot .who{font-size:12px;color:var(--text-muted);margin-bottom:2px;font-weight:600}
+  .msg.bot .body > :first-child{margin-top:0}
+  .msg.bot table{border-collapse:collapse;width:100%;font-size:13px;margin:6px 0 10px;display:block;overflow-x:auto}
+  .msg.bot th,.msg.bot td{border-bottom:1px solid var(--grid);padding:5px 8px;text-align:left;vertical-align:top}
+  .msg.bot th{color:var(--text-secondary);font-weight:600}
+  .msg.bot h3{font-size:14px;margin:14px 0 4px}
+  .msg.err{color:var(--critical);font-size:13px}
+  .tool-note{font-size:12px;color:var(--text-muted);display:flex;align-items:center;gap:6px}
+  .thinking{display:inline-flex;gap:4px}
+  .thinking span{width:6px;height:6px;border-radius:50%;background:var(--text-muted);animation:b 1.2s infinite}
+  .thinking span:nth-child(2){animation-delay:.2s}.thinking span:nth-child(3){animation-delay:.4s}
+  @keyframes b{0%,80%,100%{opacity:.25}40%{opacity:1}}
+  .suggest{display:flex;gap:6px;flex-wrap:wrap;padding:0 14px 10px}
+  .suggest button{font-size:12.5px;border:1px solid var(--border);background:transparent;border-radius:999px;padding:4px 10px;cursor:pointer;color:var(--text-secondary)}
+  .suggest button:hover{background:var(--surface-3)}
+  form.compose{display:flex;gap:8px;padding:12px 14px;border-top:1px solid var(--border)}
+  form.compose textarea{flex:1;resize:none;border:1px solid var(--border);border-radius:10px;padding:8px 10px;background:var(--surface-2);min-height:40px;max-height:140px}
+
+  /* Explorer */
+  .explorer{overflow:auto}
+  .ex-head{padding:14px 16px 6px;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+  .ex-head h2{font-size:15px;margin:0}
+  .ex-head .q{color:var(--text-secondary);font-size:13px}
+  .kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;padding:8px 16px}
+  .kpi{background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:10px 12px}
+  .kpi .v{font-size:22px;font-weight:700;letter-spacing:-0.02em;font-variant-numeric:tabular-nums}
+  .kpi .l{font-size:12px;color:var(--text-secondary)}
+  .filters{display:flex;gap:8px;flex-wrap:wrap;padding:10px 16px;align-items:center;position:sticky;top:0;background:var(--surface-1);z-index:2;border-bottom:1px solid var(--border)}
+  .filters input[type=search],.filters select{border:1px solid var(--border);background:var(--surface-2);border-radius:8px;padding:6px 10px}
+  .filters input[type=search]{flex:1;min-width:160px}
+  .filters label{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--text-secondary)}
+  .card{margin:12px 16px;background:var(--surface-2);border:1px solid var(--border);border-radius:12px;padding:12px 14px}
+  .card h3{margin:0 0 2px;font-size:13.5px}
+  .card .sub{margin:0 0 8px;font-size:12px;color:var(--text-muted)}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:0}
+  .grid2 .card{margin-right:8px}
+  .grid2 .card + .card{margin-left:8px;margin-right:16px}
+  svg text{fill:var(--text-secondary);font-size:11.5px}
+  svg .val{fill:var(--text-primary);font-weight:600;font-variant-numeric:tabular-nums}
+  svg .gridline{stroke:var(--grid);stroke-width:1}
+  svg .hit{fill:transparent;cursor:pointer}
+  svg .dim{opacity:.25}
+  .legend{display:flex;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--text-secondary);margin-top:6px}
+  .legend span{display:inline-flex;align-items:center;gap:5px}
+  .legend i{width:10px;height:10px;border-radius:3px;display:inline-block}
+  table.roles{width:100%;border-collapse:collapse;font-size:13px}
+  table.roles th{position:sticky;top:0;text-align:left;font-weight:600;color:var(--text-secondary);border-bottom:1px solid var(--axis);padding:6px 8px;cursor:pointer;user-select:none;white-space:nowrap;background:var(--surface-2)}
+  table.roles th[aria-sort="ascending"]::after{content:" ▲";font-size:10px}
+  table.roles th[aria-sort="descending"]::after{content:" ▼";font-size:10px}
+  table.roles td{padding:6px 8px;border-bottom:1px solid var(--grid);vertical-align:top}
+  table.roles tr.group td{background:var(--surface-3);font-weight:600;color:var(--text-primary)}
+  table.roles tr.group small{color:var(--text-muted);font-weight:400;margin-left:6px}
+  table.roles .pay{font-variant-numeric:tabular-nums;white-space:nowrap}
+  table.roles .muted{color:var(--text-muted)}
+  .badge{font-size:11px;padding:1px 6px;border-radius:999px;border:1px solid var(--border);color:var(--text-secondary);white-space:nowrap}
+  .table-wrap{max-height:520px;overflow:auto}
+  .empty{padding:40px 24px;text-align:center;color:var(--text-secondary)}
+  .empty h2{color:var(--text-primary);font-size:16px}
+  .empty ol{display:inline-block;text-align:left;margin:8px auto 0;padding-left:18px}
+  .tip{position:fixed;pointer-events:none;z-index:50;background:var(--surface-2);color:var(--text-primary);border:1px solid var(--border);box-shadow:var(--shadow);border-radius:8px;padding:8px 10px;font-size:12.5px;max-width:280px;display:none}
+  .tip b{display:block;margin-bottom:2px}
+  .tip .r{display:flex;justify-content:space-between;gap:16px;color:var(--text-secondary)}
+  .tip .r span:last-child{color:var(--text-primary);font-variant-numeric:tabular-nums}
+  .funnel td{padding:5px 8px;border-bottom:1px solid var(--grid);font-size:12.5px;vertical-align:middle}
+  .funnel th{font-size:12px;color:var(--text-secondary);text-align:left;padding:4px 8px;font-weight:600}
+  .fbar{display:flex;align-items:center;gap:6px}
+  .fbar .track{flex:1;height:8px;background:var(--surface-3);border-radius:4px;overflow:hidden;min-width:60px}
+  .fbar .fill{height:100%;border-radius:4px}
+  details.how summary{cursor:pointer;font-weight:600;font-size:13.5px}
+  details.how ol{margin:8px 0 0;padding-left:18px;color:var(--text-secondary);font-size:13px}
+  .num{font-variant-numeric:tabular-nums;text-align:right}
+  @media (max-width: 960px){
+    .app{grid-template-columns:1fr;height:auto;grid-template-rows:auto}
+    .chat{height:80dvh}
+    .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .grid2{grid-template-columns:1fr}
+    .grid2 .card,.grid2 .card + .card{margin:12px 16px}
+  }
+  @media (max-width: 520px){ .app{padding:16px 16px} table.roles th:nth-child(4),table.roles td:nth-child(4){display:none} }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <h1>Job Scout</h1>
+    <span class="tag">Brutally honest career coach. Finds open roles at the companies you pick.</span>
+    <span class="spacer"></span>
+    <div class="keys" id="keys"></div>
+    <button class="btn" id="newChat" title="Clear the conversation (keeps your employer list)">New chat</button>
+  </header>
+
+  <section class="panel chat" aria-label="Chat">
+    <div class="chips" id="chips"></div>
+    <div class="msgs" id="msgs" aria-live="polite"></div>
+    <div class="suggest" id="suggest"></div>
+    <form class="compose" id="compose">
+      <textarea id="input" rows="1" placeholder="Name companies or ask about a role…" aria-label="Message"></textarea>
+      <button class="btn primary" id="send" type="submit">Send</button>
+    </form>
+  </section>
+
+  <section class="panel explorer" id="explorer" aria-label="Role Explorer"></section>
+</div>
+<div class="tip" id="tip" role="tooltip"></div>
+
+<script>
+const $ = (s, el = document) => el.querySelector(s);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+const store = {
+  get(k, d) { try { const v = localStorage.getItem("jobscout:" + k); return v ? JSON.parse(v) : d; } catch { return d; } },
+  set(k, v) { try { localStorage.setItem("jobscout:" + k, JSON.stringify(v)); } catch {} },
+};
+
+const state = {
+  messages: store.get("messages", []),
+  employers: store.get("employers", []),
+  results: store.get("results", null),
+  busy: false,
+  filters: { q: "", companies: new Set(), location: "", payOnly: false, remoteOnly: false },
+  sort: { key: "company", dir: 1 },
+};
+
+const ATS_LABEL = { greenhouse: "Greenhouse", lever: "Lever", ashby: "Ashby", workday: "Workday", smartrecruiters: "SmartRecruiters", workable: "Workable", recruitee: "Recruitee", careers_page: "Careers page", not_found: "No board found" };
+const SLOTS = ["--s1","--s2","--s3","--s4","--s5","--s6","--s7","--s8"];
+// Color follows the company (its position on the saved list), never its rank in a chart.
+function colorFor(company) {
+  const order = state.results?.companies?.map((c) => c.company) || state.employers.map((e) => e.name);
+  const i = order.indexOf(company);
+  return i >= 0 && i < SLOTS.length ? `var(${SLOTS[i]})` : "var(--neutral-fill)";
+}
+const money = (n) => n == null ? "" : n >= 1000 ? "$" + Math.round(n / 1000) + "K" : "$" + n;
+
+marked.setOptions({ gfm: true, breaks: false });
+DOMPurify.addHook("afterSanitizeAttributes", (node) => {
+  if (node.tagName === "A") { node.setAttribute("target", "_blank"); node.setAttribute("rel", "noopener noreferrer"); }
+});
+const md = (t) => DOMPurify.sanitize(marked.parse(t || ""));
+
+/* ---------- Chat ---------- */
+
+function textOf(content) {
+  return (content || []).filter((b) => b.type === "text").map((b) => b.text).join("\n\n");
+}
+
+function renderChips() {
+  const el = $("#chips");
+  if (!state.employers.length) { el.innerHTML = '<span class="label">No companies saved yet. Name a few in the chat.</span>'; return; }
+  el.innerHTML = '<span class="label">Tracking</span>' + state.employers.map((e, i) => `
+    <span class="chip ${e.ats === "not_found" ? "missing" : ""}" title="${esc(e.boardUrl || e.note || "")}">
+      <i class="dot" style="background:${i < 8 ? `var(${SLOTS[i]})` : "var(--neutral-fill)"}"></i>
+      ${e.boardUrl ? `<a href="${esc(e.boardUrl)}" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">${esc(e.name)}</a>` : esc(e.name)}
+      <small>${esc(ATS_LABEL[e.ats] || e.ats)}</small>
+      <button aria-label="Remove ${esc(e.name)}" data-rm="${i}">×</button>
+    </span>`).join("");
+}
+
+function renderMessages() {
+  const el = $("#msgs");
+  const parts = [];
+  if (!state.messages.length) {
+    parts.push(`<div class="msg bot"><div class="who">Job Scout</div><div class="body">${md("Tell me which companies you actually want to work at, and what kind of role you're after. I'll find what's open and tell you straight whether your search is set up to work.\n\nStart with **at least two companies**. Five to ten is better.")}</div></div>`);
+  }
+  for (const m of state.messages) {
+    if (m.role === "user") {
+      const t = textOf(m.content);
+      if (t) parts.push(`<div class="msg user">${esc(t)}</div>`);
+      continue;
+    }
+    for (const b of m.content) {
+      if (b.type === "tool_use") {
+        const label = b.name === "update_employer_list"
+          ? `Updating employer list: ${esc((b.input.companies || []).join(", "))}`
+          : `Searching job boards for "${esc(b.input.role_query)}"${b.input.location ? " in " + esc(b.input.location) : ""}`;
+        parts.push(`<div class="tool-note">↳ ${label}</div>`);
+      }
+    }
+    const t = textOf(m.content);
+    if (t) parts.push(`<div class="msg bot"><div class="who">Job Scout</div><div class="body">${md(t)}</div></div>`);
+  }
+  if (state.busy) parts.push(`<div class="msg bot"><div class="who">Job Scout</div><div class="thinking" aria-label="Working"><span></span><span></span><span></span></div></div>`);
+  if (state.error) parts.push(`<div class="msg err">${esc(state.error)}</div>`);
+  el.innerHTML = parts.join("");
+  el.scrollTop = el.scrollHeight;
+
+  const sugg = state.employers.length < 2
+    ? ["Track Stripe, Figma, and Airbnb", "Add Notion, Ramp, and Databricks"]
+    : ["Find product manager roles", "Any remote data analyst jobs?", "Software engineer roles in New York", "Is my target list good enough?"];
+  $("#suggest").innerHTML = sugg.map((s) => `<button type="button">${esc(s)}</button>`).join("");
+}
+
+async function send(text) {
+  if (state.busy || !text.trim()) return;
+  state.busy = true; state.error = "";
+  const optimistic = [...state.messages, { role: "user", content: [{ type: "text", text }] }];
+  const prev = state.messages;
+  state.messages = optimistic;
+  renderMessages(); $("#send").disabled = true;
+  try {
+    const headers = { "content-type": "application/json" };
+    const pass = store.get("passcode", "");
+    if (pass) headers["x-app-passcode"] = pass;
+    const res = await fetch("/api/chat", { method: "POST", headers, body: JSON.stringify({ message: text, messages: prev, employers: state.employers }) });
+    const data = await res.json().catch(() => ({ error: `Server returned ${res.status}` }));
+    if (res.status === 401) {
+      const p = prompt("This Job Scout is passcode-protected. Enter the passcode:");
+      if (p) { store.set("passcode", p); state.messages = prev; state.busy = false; return send(text); }
+    }
+    if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
+    state.messages = data.messages;
+    state.employers = data.employers;
+    if (data.results) { state.results = data.results; resetFilters(); }
+    store.set("messages", state.messages); store.set("employers", state.employers); store.set("results", state.results);
+  } catch (err) {
+    state.messages = prev;
+    state.error = err.message;
+    $("#input").value = text;
+  } finally {
+    state.busy = false; $("#send").disabled = false;
+    renderChips(); renderMessages(); renderExplorer();
+  }
+}
+
+$("#compose").addEventListener("submit", (e) => { e.preventDefault(); const t = $("#input").value; $("#input").value = ""; send(t); });
+$("#input").addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); $("#compose").requestSubmit(); } });
+$("#suggest").addEventListener("click", (e) => { if (e.target.tagName === "BUTTON") send(e.target.textContent); });
+$("#chips").addEventListener("click", (e) => {
+  const i = e.target.dataset.rm; if (i == null) return;
+  state.employers.splice(Number(i), 1); store.set("employers", state.employers); renderChips();
+});
+$("#newChat").addEventListener("click", () => {
+  state.messages = []; state.error = ""; store.set("messages", []); renderMessages();
+});
+
+/* ---------- Role Explorer ---------- */
+
+function resetFilters() { state.filters = { q: "", companies: new Set(), location: "", payOnly: false, remoteOnly: false }; }
+
+function filteredRoles() {
+  const f = state.filters, q = f.q.trim().toLowerCase();
+  return (state.results?.roles || []).filter((r) =>
+    (!q || `${r.title} ${r.location} ${r.company}`.toLowerCase().includes(q)) &&
+    (!f.companies.size || f.companies.has(r.company)) &&
+    (!f.location || (r.location || "").toLowerCase().includes(f.location.toLowerCase())) &&
+    (!f.payOnly || r.payMin != null) &&
+    (!f.remoteOnly || r.remote));
+}
+
+function topLocations(roles) {
+  const counts = new Map();
+  for (const r of roles) for (const part of (r.location || "").split(/\s*\/\s*|;\s*/)) {
+    const city = part.split(",")[0].trim(); if (city && city.length < 40) counts.set(city, (counts.get(city) || 0) + 1);
+  }
+  return [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 25).map(([c]) => c);
+}
+
+function median(nums) { if (!nums.length) return null; const s = [...nums].sort((a, b) => a - b), m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; }
+
+function renderExplorer() {
+  const ex = $("#explorer");
+  const R = state.results;
+  if (!R) {
+    ex.innerHTML = `<div class="empty"><h2>Role Explorer</h2><p>Results from <code>find_open_roles</code> land here as a filterable, searchable comparison.</p>
+      <ol><li>Name at least two companies in the chat.</li><li>Ask about a type of role.</li><li>Filter, sort, and click through to postings here.</li></ol></div>`;
+    return;
+  }
+  const keepFocus = document.activeElement?.id;
+  const roles = filteredRoles();
+  const withPay = roles.filter((r) => r.payMin != null);
+  const companiesHit = new Set(roles.map((r) => r.company));
+  const mid = median(withPay.map((r) => (r.payMin + r.payMax) / 2));
+  const q = R.query;
+  const f = state.filters;
+
+  ex.innerHTML = `
+    <div class="ex-head"><h2>Role Explorer</h2>
+      <span class="q">"${esc(q.role)}" · ${esc(q.location && q.location !== "any" ? q.location : "any location")}${q.remote_only ? " · remote only" : ""} · searched ${new Date(R.ranAt).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}</span>
+      <span class="spacer"></span><button class="btn" id="csv">Export CSV</button></div>
+    <div class="kpis">
+      <div class="kpi"><div class="v">${roles.length}</div><div class="l">Matching roles${roles.length !== R.roles.length ? ` (of ${R.roles.length})` : ""}</div></div>
+      <div class="kpi"><div class="v">${companiesHit.size}<span style="font-size:14px;color:var(--text-muted)"> / ${R.companies.length}</span></div><div class="l">Companies with matches</div></div>
+      <div class="kpi"><div class="v">${roles.length ? Math.round(100 * withPay.length / roles.length) : 0}%</div><div class="l">List pay (${withPay.length})</div></div>
+      <div class="kpi"><div class="v">${mid ? money(Math.round(mid)) : "—"}</div><div class="l">Median pay midpoint</div></div>
+    </div>
+    <div class="filters">
+      <input type="search" id="fq" placeholder="Search title, location, company" value="${esc(f.q)}" aria-label="Search roles">
+      <select id="fco" aria-label="Company"><option value="">All companies</option>${R.companies.map((c) => `<option ${f.companies.size === 1 && f.companies.has(c.company) ? "selected" : ""}>${esc(c.company)}</option>`).join("")}</select>
+      <select id="floc" aria-label="Location"><option value="">All locations</option>${topLocations(R.roles).map((l) => `<option ${f.location === l ? "selected" : ""}>${esc(l)}</option>`).join("")}</select>
+      <label><input type="checkbox" id="fremote" ${f.remoteOnly ? "checked" : ""}> Remote</label>
+      <label><input type="checkbox" id="fpay" ${f.payOnly ? "checked" : ""}> Pay listed</label>
+      <button class="btn" id="fclear" type="button">Clear</button>
+    </div>
+    <div class="grid2">
+      <div class="card"><h3>Matches by company</h3><p class="sub">Click a bar to filter. Hover for search details.</p><div id="barChart"></div></div>
+      <div class="card"><h3>Pay ranges</h3><p class="sub">Annualized. Each bar is one posting; click to open it.</p><div id="payChart"></div></div>
+    </div>
+    <div class="card"><h3>Open roles by company</h3><p class="sub">Click a column to sort. Links open the original posting.</p><div class="table-wrap" id="tableWrap"></div></div>
+    <div class="card"><details class="how" open><summary>How find_open_roles ran</summary>
+      <ol>
+        <li>Took every company on your saved list and the job board <code>update_employer_list</code> found for it.</li>
+        <li>Pulled every live posting from that board's public API (Workday is searched by keyword; plain careers pages are read with Firecrawl).</li>
+        <li>Kept postings whose title contains all the words of any keyword: <b>${esc(q.keywords.join(", "))}</b>.</li>
+        <li>Applied the location${q.remote_only ? " and remote-only" : ""} filter, then pulled pay from the posting's salary fields or its pay-transparency text.</li>
+      </ol>
+      <div style="overflow-x:auto"><table class="funnel" style="width:100%;margin-top:10px;border-collapse:collapse">
+        <thead><tr><th>Company</th><th>Board</th><th class="num">Scanned</th><th class="num">Title match</th><th>Final matches</th><th class="num">Time</th></tr></thead>
+        <tbody>${R.companies.map((c) => `<tr>
+          <td><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${colorFor(c.company)};margin-right:6px"></span>${esc(c.company)}</td>
+          <td>${c.board_url ? `<a href="${esc(c.board_url)}" target="_blank" rel="noopener">${esc(ATS_LABEL[c.job_board] || c.job_board)}</a>` : esc(ATS_LABEL[c.job_board] || c.job_board)}${c.error ? `<div style="color:var(--critical);font-size:11.5px">${esc(c.error)}</div>` : ""}</td>
+          <td class="num">${c.scanned}</td><td class="num">${c.title_matches ?? 0}</td>
+          <td><div class="fbar"><div class="track"><div class="fill" style="width:${c.scanned ? Math.max(2, 100 * c.matched / Math.max(1, c.title_matches || c.matched)) : 0}%;background:${colorFor(c.company)}"></div></div><span class="num" style="min-width:24px">${c.matched}</span></div></td>
+          <td class="num">${(c.ms / 1000).toFixed(1)}s</td></tr>`).join("")}</tbody>
+      </table></div></details></div>`;
+
+  drawBars(roles); drawPay(withPay); drawTable(roles);
+
+  const rerender = () => renderExplorer();
+  $("#fq").addEventListener("input", (e) => { f.q = e.target.value; rerender(); });
+  $("#fco").addEventListener("change", (e) => { f.companies = new Set(e.target.value ? [e.target.value] : []); rerender(); });
+  $("#floc").addEventListener("change", (e) => { f.location = e.target.value; rerender(); });
+  $("#fremote").addEventListener("change", (e) => { f.remoteOnly = e.target.checked; rerender(); });
+  $("#fpay").addEventListener("change", (e) => { f.payOnly = e.target.checked; rerender(); });
+  $("#fclear").addEventListener("click", () => { resetFilters(); rerender(); });
+  $("#csv").addEventListener("click", () => exportCsv(roles));
+  if (keepFocus === "fq") { const i = $("#fq"); i.focus(); i.setSelectionRange(i.value.length, i.value.length); }
+}
+
+/* Tooltip */
+const tip = $("#tip");
+function showTip(html, e) { tip.innerHTML = html; tip.style.display = "block"; moveTip(e); }
+function moveTip(e) {
+  const pad = 14, w = tip.offsetWidth, h = tip.offsetHeight;
+  let x = e.clientX + pad, y = e.clientY + pad;
+  if (x + w > innerWidth - 8) x = e.clientX - w - pad;
+  if (y + h > innerHeight - 8) y = e.clientY - h - pad;
+  tip.style.left = x + "px"; tip.style.top = y + "px";
+}
+function hideTip() { tip.style.display = "none"; }
+const row = (k, v) => `<div class="r"><span>${esc(k)}</span><span>${esc(v)}</span></div>`;
+
+function drawBars(roles) {
+  const R = state.results, el = $("#barChart");
+  const counts = R.companies.map((c) => ({ c, n: roles.filter((r) => r.company === c.company).length }));
+  const W = Math.max(280, el.clientWidth || 320), rowH = 30, labelW = Math.min(130, W * 0.36), H = counts.length * rowH + 6;
+  const max = Math.max(1, ...counts.map((d) => d.n));
+  const x = (n) => (n / max) * (W - labelW - 40);
+  const sel = state.filters.companies;
+  el.innerHTML = `<svg width="${W}" height="${H}" role="img" aria-label="Matching roles per company">
+    ${counts.map((d, i) => {
+      const y = i * rowH + 4, bw = Math.max(d.n ? 4 : 0, x(d.n)), dim = sel.size && !sel.has(d.c.company);
+      return `<g class="${dim ? "dim" : ""}">
+        <text x="${labelW - 8}" y="${y + 15}" text-anchor="end">${esc(d.c.company.length > 18 ? d.c.company.slice(0, 17) + "…" : d.c.company)}</text>
+        <rect x="${labelW}" y="${y + 4}" width="${bw}" height="16" rx="4" fill="${colorFor(d.c.company)}"></rect>
+        <text class="val" x="${labelW + bw + 6}" y="${y + 16}">${d.n}${d.c.error ? " ⚠" : ""}</text>
+        <rect class="hit" x="0" y="${y}" width="${W}" height="${rowH}" data-i="${i}"></rect></g>`;
+    }).join("")}</svg>`;
+  el.querySelectorAll(".hit").forEach((h) => {
+    const d = counts[h.dataset.i];
+    h.addEventListener("mousemove", (e) => showTip(`<b>${esc(d.c.company)}</b>${row("Job board", ATS_LABEL[d.c.job_board] || d.c.job_board)}${row("Postings scanned", d.c.scanned)}${row("Title matches", d.c.title_matches ?? 0)}${row("After filters", d.n)}${d.c.error ? `<div style="color:var(--critical);margin-top:4px">${esc(d.c.error)}</div>` : ""}`, e));
+    h.addEventListener("mouseleave", hideTip);
+    h.addEventListener("click", (e) => {
+      const s = state.filters.companies, name = d.c.company;
+      if (s.has(name)) s.delete(name); else { if (s.size === 0 || !(e.metaKey || e.shiftKey)) s.clear(); s.add(name); }
+      hideTip(); renderExplorer();
+    });
+  });
+}
+
+function drawPay(withPay) {
+  const el = $("#payChart");
+  if (!withPay.length) { el.innerHTML = `<p class="sub" style="padding:24px 0;text-align:center">None of the current matches list pay.${state.filters.payOnly ? "" : " That's common outside CA, CO, NY, and WA."}</p>`; return; }
+  const items = [...withPay].sort((a, b) => (b.payMin + b.payMax) - (a.payMin + a.payMax)).slice(0, 40);
+  const W = Math.max(280, el.clientWidth || 320), rowH = 14, top = 6, bottom = 22, H = items.length * rowH + top + bottom;
+  const lo = Math.min(...items.map((r) => r.payMin)), hi = Math.max(...items.map((r) => r.payMax));
+  const step = hi - lo > 300000 ? 100000 : hi - lo > 120000 ? 50000 : 25000;
+  const x0 = Math.floor(lo / step) * step, x1 = Math.ceil(hi / step) * step || x0 + step;
+  const L = 22, Rr = 24, x = (v) => L + ((v - x0) / (x1 - x0)) * (W - L - Rr);
+  const ticks = []; for (let t = x0; t <= x1; t += step) ticks.push(t);
+  el.innerHTML = `<svg width="${W}" height="${H}" role="img" aria-label="Pay range per posting">
+    ${ticks.map((t) => `<line class="gridline" x1="${x(t)}" x2="${x(t)}" y1="${top}" y2="${H - bottom}"></line><text x="${x(t)}" y="${H - 6}" text-anchor="middle">${money(t)}</text>`).join("")}
+    ${items.map((r, i) => {
+      const y = top + i * rowH, a = x(r.payMin), b = Math.max(x(r.payMax), a + 6);
+      return `<rect x="${a}" y="${y + 3}" width="${b - a}" height="8" rx="4" fill="${colorFor(r.company)}"></rect>
+        <rect class="hit" x="0" y="${y}" width="${W}" height="${rowH}" data-i="${i}"></rect>`;
+    }).join("")}</svg>
+    ${withPay.length > items.length ? `<p class="sub" style="margin-top:4px">Top ${items.length} of ${withPay.length} by pay. Filter to narrow.</p>` : ""}
+    <div class="legend">${[...new Set(items.map((r) => r.company))].map((c) => `<span><i style="background:${colorFor(c)}"></i>${esc(c)}</span>`).join("")}</div>`;
+  el.querySelectorAll(".hit").forEach((h) => {
+    const r = items[h.dataset.i];
+    h.addEventListener("mousemove", (e) => showTip(`<b>${esc(r.title)}</b>${row("Company", r.company)}${row("Location", r.location || "Not listed")}${row("Pay", r.payText)}${row("Annualized", `${money(r.payMin)} – ${money(r.payMax)}`)}`, e));
+    h.addEventListener("mouseleave", hideTip);
+    h.addEventListener("click", () => window.open(r.url, "_blank", "noopener"));
+  });
+}
+
+function drawTable(roles) {
+  const { key, dir } = state.sort;
+  const cmp = {
+    company: (a, b) => a.company.localeCompare(b.company) || a.title.localeCompare(b.title),
+    title: (a, b) => a.title.localeCompare(b.title),
+    location: (a, b) => (a.location || "~").localeCompare(b.location || "~"),
+    pay: (a, b) => (a.payMax ?? -1) - (b.payMax ?? -1),
+  }[key];
+  const sorted = [...roles].sort((a, b) => cmp(a, b) * dir);
+  // Keep rows grouped by company in the saved-list order; sort applies within each group.
+  const order = state.results.companies.map((c) => c.company);
+  const groups = order.map((c) => [c, sorted.filter((r) => r.company === c)]).filter(([, rs]) => rs.length);
+  const th = (k, label) => `<th data-k="${k}" aria-sort="${key === k ? (dir > 0 ? "ascending" : "descending") : "none"}">${label}</th>`;
+  $("#tableWrap").innerHTML = !roles.length ? `<p class="sub" style="padding:16px 0">No roles match these filters.</p>` : `
+    <table class="roles"><thead><tr>${th("title", "Role")}${th("location", "Location")}${th("pay", "Pay")}<th>Link</th></tr></thead>
+    <tbody>${groups.map(([c, rs]) => `
+      <tr class="group"><td colspan="4"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${colorFor(c)};margin-right:6px"></span>${esc(c)}<small>${rs.length} role${rs.length === 1 ? "" : "s"}</small></td></tr>
+      ${rs.map((r) => `<tr>
+        <td><a href="${esc(r.url)}" target="_blank" rel="noopener noreferrer">${esc(r.title)}</a>${r.remote ? ' <span class="badge">Remote</span>' : ""}</td>
+        <td>${r.location ? esc(r.location) : '<span class="muted">Not listed</span>'}</td>
+        <td class="pay">${r.payText ? esc(r.payText) : '<span class="muted">Not listed</span>'}</td>
+        <td><a href="${esc(r.url)}" target="_blank" rel="noopener noreferrer">View posting ↗</a></td></tr>`).join("")}`).join("")}
+    </tbody></table>`;
+  $("#tableWrap").querySelectorAll("th[data-k]").forEach((h) => h.addEventListener("click", () => {
+    const k = h.dataset.k; state.sort = { key: k, dir: state.sort.key === k ? -state.sort.dir : k === "pay" ? -1 : 1 }; drawTable(filteredRoles());
+  }));
+}
+
+function exportCsv(roles) {
+  const cell = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+  const lines = [["Company", "Role", "Location", "Remote", "Pay", "Annual min", "Annual max", "Link"].join(",")]
+    .concat(roles.map((r) => [r.company, r.title, r.location, r.remote ? "yes" : "", r.payText, r.payMin ?? "", r.payMax ?? "", r.url].map(cell).join(",")));
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([lines.join("\n")], { type: "text/csv" }));
+  a.download = `job-scout-${(state.results.query.role || "roles").replace(/\W+/g, "-")}.csv`;
+  a.click(); URL.revokeObjectURL(a.href);
+}
+
+/* ---------- Boot ---------- */
+async function loadStatus() {
+  try {
+    const s = await (await fetch("/api/chat")).json();
+    $("#keys").innerHTML = Object.entries({ Claude: s.keys.anthropic, Tavily: s.keys.tavily, Firecrawl: s.keys.firecrawl })
+      .map(([k, on]) => `<span class="key ${on ? "on" : "off"}" title="${on ? "API key configured" : "API key missing on the server"}"><i></i>${k}</span>`).join("");
+  } catch {}
+}
+let resizeT; addEventListener("resize", () => { clearTimeout(resizeT); resizeT = setTimeout(renderExplorer, 150); });
+renderChips(); renderMessages(); renderExplorer(); loadStatus();
+</script>
+</body>
+</html>
